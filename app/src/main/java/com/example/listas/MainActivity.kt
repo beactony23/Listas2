@@ -21,12 +21,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,25 +73,26 @@ fun AppContent(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val userRole = remember { mutableStateOf("cliente") }
 
-    NavHost(navController = navController, startDestination = "frmReservas") {
+    NavHost(navController = navController, startDestination = "login") {
         composable("Login") { LoginContent(navController, modifier, userRole) }
         composable("menu") { MenuContent(navController, modifier) }
         composable("menuadmin") { MenuAdminContent(navController, modifier) }
         composable("lstReservas") { LstReservasContent(navController, modifier, userRole) }
-        composable("frmReservas") { frmreservasContent(modifier, navController, userRole) }
+        composable("frmReservas") { FrmreservasContent(modifier, navController, userRole) }
         composable("lstTrajes") { LstTrajesContent(navController, modifier, userRole) }
-        composable("frmTrajes") { frmTrajesContent(navController, modifier, userRole) }
+        composable("frmTrajes") { FrmTrajesContent(navController, modifier, userRole) }
         composable("lstClientes") { LstClientesContent(navController, modifier, userRole) }
-        composable("frmClientes") { frmClientesContent(modifier, navController, userRole) }
+        composable("frmClientes") { FrmClientesContent(modifier, navController, userRole) }
         composable("lstRentas") { LstRentasContent(navController, modifier, userRole) }
-        composable("frmRentas") { frmRentasContent(navController, modifier, userRole) }
+        composable("frmRentas") { FrmRentasContent(navController, modifier, userRole) }
         composable("lstPagos") { LstPagosContent(navController, modifier, userRole) }
-        composable("frmPagos") { frmPagosContent(modifier, navController, userRole) }
+        composable("frmPagos") { FrmPagosContent(modifier, navController, userRole) }
         composable("lstEmpleados") { LstEmpleadosContent(navController, modifier, userRole) }
-        composable("frmEmpleados") { frmEmpleadosContent(modifier, navController, userRole) }
+        composable("frmEmpleados") { FrmEmpleadosContent(modifier, navController, userRole) }
 
     }
-}@Composable
+}
+@Composable
 fun LoginContent(navController: NavHostController, modifier: Modifier, userRole: androidx.compose.runtime.MutableState<String>) {
     val context = LocalContext.current
 
@@ -142,21 +145,20 @@ fun LoginContent(navController: NavHostController, modifier: Modifier, userRole:
                 val usuarioCorrecto = "Android"
                 val contrasenaCorrecta = "12345"
                 val usuarioAdmin = "Admin"
-                val contraseñaAdmin = "54321"
+                val contrasenaAdmin = "54321"
 
-                // --- LÓGICA DE LOGIN CORREGIDA ---
-                if (usuario == usuarioAdmin && contrasena == contraseñaAdmin) {
+                if (usuario == usuarioAdmin && contrasena == contrasenaAdmin) {
                     Toast.makeText(context, "¡Bienvenido, ${usuario}!", Toast.LENGTH_SHORT).show()
-                    userRole.value = "admin" // <--- ¡AQUÍ! Se actualiza el estado
+                    userRole.value = "admin"
                     navController.navigate("menuadmin")
                 } else if (usuario == usuarioCorrecto && contrasena == contrasenaCorrecta) {
                     Toast.makeText(context, "¡Bienvenido, ${usuario}!", Toast.LENGTH_SHORT).show()
-                    userRole.value = "cliente" // <--- ¡AQUÍ! Se actualiza el estado
+                    userRole.value = "cliente"
                     navController.navigate("menu")
                 } else {
                     Toast.makeText(context, "Usuario o contraseña incorrectos", Toast.LENGTH_LONG).show()
                 }
-                // --- SE ELIMINÓ EL SEGUNDO IF REDUNDANTE ---
+
             },
             modifier = Modifier.align(Alignment.End)
         ) {
@@ -259,7 +261,6 @@ fun MenuContent(navController: NavHostController, modifier: Modifier) {
 
     }
 }
-
 @Composable
 fun MenuAdminContent(navController: NavHostController, modifier: Modifier) {
     Column(
@@ -410,7 +411,7 @@ fun MenuAdminContent(navController: NavHostController, modifier: Modifier) {
 
 @Composable
 fun LstReservasContent(navController: NavHostController, modifier: Modifier, userRole: androidx.compose.runtime.MutableState<String>) {
-    data class Reserva(val idReserva: Int, val idCliente: Int, val idTraje: Int, val Fecha: String, val Estado: String)
+    data class Reserva(val idReserva: Int, val idCliente: Int, val idTraje: Int, val fecha: String, val estado: String)
     val reserva = remember {
         mutableStateListOf(
             Reserva(1, 1, 23, "09-10-2025" ,"Activo"),
@@ -505,7 +506,7 @@ fun LstReservasContent(navController: NavHostController, modifier: Modifier, use
             Text("Eliminar", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
 
         }
-        Divider()
+        HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
         reserva.forEachIndexed { index, Reserva ->
             val bgColor = if (index % 2 == 0) Color(0xFFF5F5F5) else Color.White
 
@@ -526,11 +527,11 @@ fun LstReservasContent(navController: NavHostController, modifier: Modifier, use
                         .width(150.dp)
                 )
                 Text(
-                    Reserva.Fecha, modifier = Modifier
+                    Reserva.fecha, modifier = Modifier
                         .width(150.dp)
                 )
                 Text(
-                    Reserva.Estado, modifier = Modifier
+                    Reserva.estado, modifier = Modifier
                         .width(150.dp)
                 )
 
@@ -548,7 +549,7 @@ fun LstReservasContent(navController: NavHostController, modifier: Modifier, use
     }
 }
 @Composable
-fun frmreservasContent(modifier: Modifier = Modifier, Controller: NavHostController, userRole: androidx.compose.runtime.MutableState<String>
+fun FrmreservasContent(modifier: Modifier = Modifier, controller: NavHostController, userRole: androidx.compose.runtime.MutableState<String>
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
@@ -571,9 +572,9 @@ fun frmreservasContent(modifier: Modifier = Modifier, Controller: NavHostControl
         Row {
             Button(
                 onClick = { if (userRole.value == "admin") {
-                    Controller.navigate("menuadmin")
+                    controller.navigate("menuadmin")
                 } else {
-                    Controller.navigate("menu")
+                    controller.navigate("menu")
                 }
                 }, // Se navega al menú
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = Color.Blue),
@@ -585,7 +586,7 @@ fun frmreservasContent(modifier: Modifier = Modifier, Controller: NavHostControl
 
             }
             Button(
-                onClick = { Controller.navigate("lstReservas") }, // Se navega a la tabla
+                onClick = { controller.navigate("lstReservas") }, // Se navega a la tabla
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = Color.Blue)
             ) {
                 Text(text = "Regresar a Reservas",
@@ -614,7 +615,6 @@ fun frmreservasContent(modifier: Modifier = Modifier, Controller: NavHostControl
         )
 
         Spacer(Modifier.height(40.dp))
-        } else {
         }
 
         Text(text = "id Cliente:", modifier = Modifier.align(alignment = Alignment.Start))
@@ -657,22 +657,18 @@ fun frmreservasContent(modifier: Modifier = Modifier, Controller: NavHostControl
         )
 
         Spacer(Modifier.height(40.dp))
-        } else {
-
         }
 
         Button(
             onClick = {
                 if (userRole.value == "admin") {
                 Toast.makeText(context, "Id Reserva: $idReserva", Toast.LENGTH_SHORT).show()
-                } else {
                 }
                 Toast.makeText(context, "Id Cliente: $idCliente", Toast.LENGTH_SHORT).show()
                 Toast.makeText(context, "Id Traje: $idTraje", Toast.LENGTH_SHORT).show()
                 Toast.makeText(context, "fechaReserva: $fechaReserva", Toast.LENGTH_SHORT).show()
                 if (userRole.value == "admin") {
                 Toast.makeText(context, "Estado: $estado", Toast.LENGTH_SHORT).show()
-                } else {
                 }
             },
             modifier = Modifier.align(alignment = Alignment.End)
@@ -684,7 +680,7 @@ fun frmreservasContent(modifier: Modifier = Modifier, Controller: NavHostControl
 
 @Composable
 fun LstTrajesContent(navController: NavHostController, modifier: Modifier, userRole: androidx.compose.runtime.MutableState<String>) {
-    data class Trajes(val idTraje: Int, val Nombre: String, val descripcion: String)
+    data class Trajes(val idTraje: Int, val nombre: String, val descripcion: String)
     val trajes = remember {
         mutableStateListOf(
             Trajes(1, "Traje ébano", "Corte clásico, color negro intenso."),
@@ -769,7 +765,7 @@ fun LstTrajesContent(navController: NavHostController, modifier: Modifier, userR
             Text("Descripción", modifier = Modifier.width(100.dp), fontWeight = FontWeight.Bold)
             Text("Eliminar", modifier = Modifier.width(100.dp), fontWeight = FontWeight.Bold)
         }
-        Divider()
+        HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
         trajes.forEachIndexed { index, Trajes ->
             val bgColor = if (index % 2 == 0) Color(0xFFF5F5F5) else Color.White
 
@@ -780,10 +776,12 @@ fun LstTrajesContent(navController: NavHostController, modifier: Modifier, userR
                 Text("${Trajes.idTraje}", modifier = Modifier
                     .width(150.dp)
                 )
-                Text("${Trajes.Nombre}", modifier = Modifier
+                Text(
+                    Trajes.nombre, modifier = Modifier
                     .width(100.dp)
                 )
-                Text("${Trajes.descripcion}", modifier = Modifier
+                Text(
+                    Trajes.descripcion, modifier = Modifier
                     .width(100.dp)
                 )
                 Button(onClick = {
@@ -798,13 +796,13 @@ fun LstTrajesContent(navController: NavHostController, modifier: Modifier, userR
     }
 }
 @Composable
-fun frmTrajesContent(navController: NavHostController, modifier: Modifier, userRole: androidx.compose.runtime.MutableState<String>
+fun FrmTrajesContent(navController: NavHostController, modifier: Modifier, userRole: androidx.compose.runtime.MutableState<String>
 ) {
     val context = LocalContext.current
 
     var idTraje by remember { mutableStateOf("") }
-    var NombreTraje by remember { mutableStateOf("") }
-    var Descripcion by remember { mutableStateOf("") }
+    var nombreTraje by remember { mutableStateOf("") }
+    var descripcion by remember { mutableStateOf("") }
 
     Column(
         modifier = modifier
@@ -826,11 +824,13 @@ fun frmTrajesContent(navController: NavHostController, modifier: Modifier, userR
             ) {
                 Text(text = "Regresar al Menú")
             }
+            if (userRole.value == "admin") {
             Button(
                 onClick = { navController.navigate("lstTrajes") }, // Se navega a la tabla
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = Color.Blue)
             ) {
                 Text(text = "Regresar a Trajes")
+            }
             }
         }
 
@@ -856,8 +856,8 @@ fun frmTrajesContent(navController: NavHostController, modifier: Modifier, userR
 
         Text(text = "Nombre traje:", modifier = Modifier.align(alignment = Alignment.Start))
         TextField(
-            value = NombreTraje,
-            onValueChange = { NombreTraje = it },
+            value = nombreTraje,
+            onValueChange = { nombreTraje = it },
             placeholder = { Text("Nombre del Traje") },
             modifier = Modifier.fillMaxWidth()
         )
@@ -866,8 +866,8 @@ fun frmTrajesContent(navController: NavHostController, modifier: Modifier, userR
 
         Text(text = "Descripcion:", modifier = Modifier.align(alignment = Alignment.Start))
         TextField(
-            value = Descripcion,
-            onValueChange = { Descripcion = it },
+            value = descripcion,
+            onValueChange = { descripcion = it },
             placeholder = { Text("Descripcion") },
             modifier = Modifier.fillMaxWidth()
         )
@@ -879,8 +879,8 @@ fun frmTrajesContent(navController: NavHostController, modifier: Modifier, userR
         Button(
             onClick = {
                 Toast.makeText(context, "Id Traje: $idTraje", Toast.LENGTH_SHORT).show()
-                Toast.makeText(context, "Nombre Del Traje: $NombreTraje", Toast.LENGTH_SHORT).show()
-                Toast.makeText(context, "Descripcion: $Descripcion", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Nombre Del Traje: $nombreTraje", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Descripcion: $descripcion", Toast.LENGTH_SHORT).show()
             },
             modifier = Modifier.align(alignment = Alignment.End)
         ) {
@@ -889,14 +889,13 @@ fun frmTrajesContent(navController: NavHostController, modifier: Modifier, userR
     }
 }
 
-
 @Composable
 fun LstClientesContent(navController: NavHostController, modifier: Modifier, userRole: androidx.compose.runtime.MutableState<String>) {
     data class Cliente(
-        val id_Cliente: Int,
-        val Nombre: String,
-        val Telefono: String,
-        val Correo_electronico: String
+        val idCliente: Int,
+        val nombre: String,
+        val telefono: String,
+        val correoElectronico: String
     )
 
     val clientes = remember {
@@ -907,7 +906,7 @@ fun LstClientesContent(navController: NavHostController, modifier: Modifier, use
         )
     }
 
-    var nextId by remember { mutableStateOf(clientes.size + 1) }
+    var nextId by remember { mutableIntStateOf(clientes.size + 1) }
     val scrollState = rememberScrollState()
 
     Column(
@@ -991,7 +990,7 @@ fun LstClientesContent(navController: NavHostController, modifier: Modifier, use
             Text("Eliminar", modifier = Modifier.width(100.dp), fontWeight = FontWeight.Bold)
         }
 
-        Divider()
+        HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
 
         clientes.forEachIndexed { index, cliente ->
             val bgColor = if (index % 2 == 0) Color(0xFFF5F5F5) else Color.White
@@ -1001,10 +1000,10 @@ fun LstClientesContent(navController: NavHostController, modifier: Modifier, use
                     .background(bgColor)
                     .padding(vertical = 4.dp)
             ) {
-                Text("${cliente.id_Cliente}", modifier = Modifier.width(50.dp))
-                Text(cliente.Nombre, modifier = Modifier.width(150.dp))
-                Text(cliente.Telefono, modifier = Modifier.width(120.dp))
-                Text(cliente.Correo_electronico, modifier = Modifier.width(180.dp))
+                Text("${cliente.idCliente}", modifier = Modifier.width(50.dp))
+                Text(cliente.nombre, modifier = Modifier.width(150.dp))
+                Text(cliente.telefono, modifier = Modifier.width(120.dp))
+                Text(cliente.correoElectronico, modifier = Modifier.width(180.dp))
                 Button(onClick = { clientes.removeAt(index) }) {
                     Text("Eliminar")
                 }
@@ -1013,7 +1012,7 @@ fun LstClientesContent(navController: NavHostController, modifier: Modifier, use
         }
 }
 @Composable
-fun frmClientesContent(modifier: Modifier = Modifier, controller: NavHostController, userRole: androidx.compose.runtime.MutableState<String>
+fun FrmClientesContent(modifier: Modifier = Modifier, controller: NavHostController, userRole: androidx.compose.runtime.MutableState<String>
 ) {
     val context = LocalContext.current
 
@@ -1130,7 +1129,7 @@ fun frmClientesContent(modifier: Modifier = Modifier, controller: NavHostControl
 
 @Composable
 fun LstRentasContent(navController: NavHostController, modifier: Modifier, userRole: androidx.compose.runtime.MutableState<String>) {
-    data class Rentas(val idRenta: Int, val idCliente: Int, val idTraje: Int, val Descripcion: String, val fechaHoraInicio: String, val fechaHoraFin: String)
+    data class Rentas(val idRenta: Int, val idCliente: Int, val idTraje: Int, val descripcion: String, val fechaHoraInicio: String, val fechaHoraFin: String)
     val rentas = remember {
         mutableStateListOf(
             Rentas(1, 3, 8, "Traje bonito azul", "12/3/04","5/6/78"),
@@ -1217,7 +1216,7 @@ fun LstRentasContent(navController: NavHostController, modifier: Modifier, userR
             Text("FechaHoraInicio", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
             Text("FechaHoraFin", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
         }
-        Divider()
+        HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
         rentas.forEachIndexed { index, Rentas ->
             val bgColor = if (index % 2 == 0) Color(0xFFF5F5F5) else Color.White
 
@@ -1234,7 +1233,7 @@ fun LstRentasContent(navController: NavHostController, modifier: Modifier, userR
                 Text("${Rentas.idTraje}", modifier = Modifier
                     .width(150.dp)
                 )
-                Text(Rentas.Descripcion, modifier = Modifier
+                Text(Rentas.descripcion, modifier = Modifier
                     .width(150.dp)
                 )
                 Text(Rentas.fechaHoraInicio, modifier = Modifier
@@ -1255,7 +1254,7 @@ fun LstRentasContent(navController: NavHostController, modifier: Modifier, userR
     }
 }
 @Composable
-fun frmRentasContent(navController: NavHostController, modifier: Modifier, userRole: androidx.compose.runtime.MutableState<String>
+fun FrmRentasContent(navController: NavHostController, modifier: Modifier, userRole: androidx.compose.runtime.MutableState<String>
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
@@ -1347,8 +1346,6 @@ fun frmRentasContent(navController: NavHostController, modifier: Modifier, userR
         )
 
         Spacer(Modifier.height(40.dp))
-        } else {
-
         }
 
         Text(text = "descripcion:", modifier = Modifier.align(alignment = Alignment.Start))
@@ -1387,7 +1384,6 @@ fun frmRentasContent(navController: NavHostController, modifier: Modifier, userR
                 Toast.makeText(context, "Id Traje: $idTraje", Toast.LENGTH_SHORT).show()
                 if (userRole.value == "admin") {
                 Toast.makeText(context, "Id Empleado: $idEmpleado", Toast.LENGTH_SHORT).show()
-                } else {
                 }
                 Toast.makeText(context, "Descripción: $descripcion", Toast.LENGTH_SHORT).show()
                 Toast.makeText(context, "Hora de inicio: $fechaHoraInicio", Toast.LENGTH_SHORT).show()
@@ -1402,7 +1398,7 @@ fun frmRentasContent(navController: NavHostController, modifier: Modifier, userR
 
 @Composable
 fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRole: androidx.compose.runtime.MutableState<String>) {
-    data class Pagos(val idPago: Int, val idRenta: Int, val monto: Double, val Fecha: String, val metodoPago: String)
+    data class Pagos(val idPago: Int, val idRenta: Int, val monto: Double, val fecha: String, val metodoPago: String)
     val pagos = remember {
         mutableStateListOf(
             Pagos(1, 1, 2000.0, "09-10-2025" ,"Efectivo"),
@@ -1497,7 +1493,7 @@ fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRo
             Text("Eliminar", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
 
         }
-        Divider()
+        HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
         pagos.forEachIndexed { index, Pagos ->
             val bgColor = if (index % 2 == 0) Color(0xFFF5F5F5) else Color.White
 
@@ -1518,11 +1514,11 @@ fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRo
                         .width(150.dp)
                 )
                 Text(
-                    "${Pagos.Fecha}", modifier = Modifier
+                    Pagos.fecha, modifier = Modifier
                         .width(150.dp)
                 )
                 Text(
-                    "${Pagos.metodoPago}", modifier = Modifier
+                    Pagos.metodoPago, modifier = Modifier
                         .width(150.dp)
                 )
 
@@ -1540,15 +1536,15 @@ fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRo
     }
 }
 @Composable
-fun frmPagosContent(modifier: Modifier = Modifier, controller: NavHostController, userRole: androidx.compose.runtime.MutableState<String>
+fun FrmPagosContent(modifier: Modifier = Modifier, controller: NavHostController, userRole: androidx.compose.runtime.MutableState<String>
 ) {
     val context = LocalContext.current
 
     var idPago by remember { mutableStateOf("") }
     var idRenta by remember { mutableStateOf("") }
-    var Monto by remember { mutableStateOf("") }
-    var FechaPago by remember { mutableStateOf("") }
-    var MetodoPago by remember { mutableStateOf("") }
+    var monto by remember { mutableStateOf("") }
+    var fechaPago by remember { mutableStateOf("") }
+    var metodoPago by remember { mutableStateOf("") }
 
     Column(
         modifier = modifier
@@ -1610,8 +1606,8 @@ fun frmPagosContent(modifier: Modifier = Modifier, controller: NavHostController
 
         Text(text = "Monto:", modifier = Modifier.align(alignment = Alignment.Start))
         TextField(
-            value = Monto,
-            onValueChange = { Monto = it },
+            value = monto,
+            onValueChange = { monto = it },
             placeholder = { Text("Monto final") },
             modifier = Modifier.fillMaxWidth()
         )
@@ -1620,8 +1616,8 @@ fun frmPagosContent(modifier: Modifier = Modifier, controller: NavHostController
 
         Text(text = "Fecha de Pago:", modifier = Modifier.align(alignment = Alignment.Start))
         TextField(
-            value = FechaPago,
-            onValueChange = { FechaPago = it },
+            value = fechaPago,
+            onValueChange = { fechaPago = it },
             placeholder = { Text("Fecha del pago") },
             modifier = Modifier.fillMaxWidth()
         )
@@ -1630,8 +1626,8 @@ fun frmPagosContent(modifier: Modifier = Modifier, controller: NavHostController
 
         Text(text = "Metodo de pago:", modifier = Modifier.align(alignment = Alignment.Start))
         TextField(
-            value = MetodoPago,
-            onValueChange = { MetodoPago = it },
+            value = metodoPago,
+            onValueChange = { metodoPago = it },
             placeholder = { Text("Metodo de pago:") },
             modifier = Modifier.fillMaxWidth()
         )
@@ -1640,9 +1636,9 @@ fun frmPagosContent(modifier: Modifier = Modifier, controller: NavHostController
             onClick = {
                 Toast.makeText(context, "Id Pago: $idPago", Toast.LENGTH_SHORT).show()
                 Toast.makeText(context, "Id Renta: $idRenta", Toast.LENGTH_SHORT).show()
-                Toast.makeText(context, "Monto: $Monto", Toast.LENGTH_SHORT).show()
-                Toast.makeText(context, "Fecha de pago: $FechaPago", Toast.LENGTH_SHORT).show()
-                Toast.makeText(context, "Metodo de pago: $MetodoPago", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Monto: $monto", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Fecha de pago: $fechaPago", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Metodo de pago: $metodoPago", Toast.LENGTH_SHORT).show()
             },
             modifier = Modifier.align(alignment = Alignment.End)
         ) {
@@ -1745,7 +1741,7 @@ fun LstEmpleadosContent(navController: NavHostController, modifier: Modifier, us
             Text("Eliminar", modifier = Modifier.width(100.dp), fontWeight = FontWeight.Bold)
         }
 
-        Divider()
+        HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
 
 
         empleados.forEachIndexed { index, empleado ->
@@ -1768,8 +1764,7 @@ fun LstEmpleadosContent(navController: NavHostController, modifier: Modifier, us
     }
 }
 @Composable
-fun frmEmpleadosContent(modifier: Modifier = Modifier, controller: NavHostController, userRole: androidx.compose.runtime.MutableState<String>
-) {
+fun FrmEmpleadosContent(modifier: Modifier = Modifier, controller: NavHostController, userRole: androidx.compose.runtime.MutableState<String>) {
     val context = LocalContext.current
 
     var idEmpleado by remember { mutableStateOf("") }
