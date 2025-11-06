@@ -1,6 +1,7 @@
 package com.example.listas
 
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -22,6 +23,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -32,6 +38,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,6 +58,15 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.listas.ui.theme.ListasTheme
+import kotlinx.coroutines.launch
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.converter.scalars.ScalarsConverterFactory
+import retrofit2.http.Field
+import retrofit2.http.FormUrlEncoded
+import retrofit2.http.GET
+import retrofit2.http.POST
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,7 +89,7 @@ fun AppContent(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val userRole = remember { mutableStateOf("cliente") }
 
-    NavHost(navController = navController, startDestination = "login") {
+    NavHost(navController = navController, startDestination = "Login") {
         composable("Login") { LoginContent(navController, modifier, userRole) }
         composable("menu") { MenuContent(navController, modifier) }
         composable("menuadmin") { MenuAdminContent(navController, modifier) }
@@ -89,9 +105,44 @@ fun AppContent(modifier: Modifier = Modifier) {
         composable("frmPagos") { FrmPagosContent(modifier, navController, userRole) }
         composable("lstEmpleados") { LstEmpleadosContent(navController, modifier, userRole) }
         composable("frmEmpleados") { FrmEmpleadosContent(modifier, navController, userRole) }
+        composable("Visitante") { VisitanteContent(modifier, navController, userRole) }
+
 
     }
 }
+
+data class ModeloRegistro(
+    val usuario: String,
+    val contrasena: String
+)
+interface ApiService {
+    @POST("servicio.php?iniciarSesion")
+    @FormUrlEncoded
+    suspend fun iniciarSesion(
+        @Field("usuario") usuario: String,
+        @Field("contrasena") contrasena: String
+    ): Response<String>
+
+    @GET("servicio.php?registros")
+    suspend fun registros(): List<ModeloRegistro>
+
+    @POST("servicio.php?agregarRegistro")
+    @FormUrlEncoded
+    suspend fun agregarRegistro(
+        @Field("dato1") dato1: String,
+        @Field("dato2") dato2: Double,
+        @Field("dato3") dato3: Int
+    ): Response<Unit>
+}
+
+val retrofit = Retrofit.Builder()
+    .baseUrl("https://olive-strengthen-dome-exempt.trycloudflare.com/api/api/")
+    .addConverterFactory(ScalarsConverterFactory.create())
+    .addConverterFactory(GsonConverterFactory.create())
+    .build()
+
+val api = retrofit.create(ApiService::class.java)
+
 @Composable
 fun LoginContent(navController: NavHostController, modifier: Modifier, userRole: androidx.compose.runtime.MutableState<String>) {
     val context = LocalContext.current
@@ -99,6 +150,7 @@ fun LoginContent(navController: NavHostController, modifier: Modifier, userRole:
     var usuario by remember { mutableStateOf("") }
     var contrasena by remember { mutableStateOf("") }
 
+    val scope = rememberCoroutineScope()
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -142,23 +194,22 @@ fun LoginContent(navController: NavHostController, modifier: Modifier, userRole:
 
         Button(
             onClick = {
-                val usuarioCorrecto = "Android"
-                val contrasenaCorrecta = "12345"
-                val usuarioAdmin = "Admin"
-                val contrasenaAdmin = "54321"
+                scope.launch {
+                    try {
+                        val respuesta : Response<String> = api.iniciarSesion(usuario, contrasena)
+                        if (respuesta.body() == "correcto") {
+                        Toast.makeText(context, "Inicio de sesión con éxito.", Toast.LENGTH_SHORT).show()
+                        navController.navigate("menu")
 
-                if (usuario == usuarioAdmin && contrasena == contrasenaAdmin) {
-                    Toast.makeText(context, "¡Bienvenido, ${usuario}!", Toast.LENGTH_SHORT).show()
-                    userRole.value = "admin"
-                    navController.navigate("menuadmin")
-                } else if (usuario == usuarioCorrecto && contrasena == contrasenaCorrecta) {
-                    Toast.makeText(context, "¡Bienvenido, ${usuario}!", Toast.LENGTH_SHORT).show()
-                    userRole.value = "cliente"
-                    navController.navigate("menu")
-                } else {
-                    Toast.makeText(context, "Usuario o contraseña incorrectos", Toast.LENGTH_LONG).show()
+                        } else {
+                        Toast.makeText(context, "Inicio de sesión fallido.", Toast.LENGTH_SHORT).show()
+                        }
+
+                    }
+                    catch (e: Exception) {
+                        Log.e("API", "Error al agregar registro: ${e.message}")
+                    }
                 }
-
             },
             modifier = Modifier.align(Alignment.End)
         ) {
@@ -224,10 +275,27 @@ fun MenuContent(navController: NavHostController, modifier: Modifier) {
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = {
+                    navController.navigate("lstTrajes")
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Black,
+                    contentColor = Color.White
+                ),
+                modifier = Modifier
+                    .size(width = 150.dp, height = 40.dp)
+                    .align(Alignment.CenterHorizontally)
+            ) {
+
+                Text("Trajes")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
         Button(
             onClick = {
-                navController.navigate("lstTrajes")
+                navController.navigate("visitante")
             },
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Black,
@@ -238,11 +306,11 @@ fun MenuContent(navController: NavHostController, modifier: Modifier) {
                 .align(Alignment.CenterHorizontally)
         ) {
 
-            Text("Trajes")
+
+            Text("Visitante")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-
         Button(
             onClick = {
                 navController.navigate("lstRentas")
@@ -258,7 +326,6 @@ fun MenuContent(navController: NavHostController, modifier: Modifier) {
 
             Text("Rentas")
         }
-
     }
 }
 @Composable
@@ -416,7 +483,8 @@ fun LstReservasContent(navController: NavHostController, modifier: Modifier, use
         mutableStateListOf(
             Reserva(1, 1, 23, "09-10-2025" ,"Activo"),
             Reserva(2, 2, 23, "10-10-2025" ,"Activo"),
-            Reserva(3, 3, 23, "10-10-2025" ,"Activo")
+            Reserva(3, 3, 23, "10-10-2025" ,"Activo"),
+            Reserva(4, 4, 23, "10-10-2025" ,"Activo"),
         )
     }
     // productos[index] = Producto(nombre, precio, existencias)
@@ -804,6 +872,7 @@ fun FrmTrajesContent(navController: NavHostController, modifier: Modifier, userR
     var nombreTraje by remember { mutableStateOf("") }
     var descripcion by remember { mutableStateOf("") }
 
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -1111,6 +1180,7 @@ fun FrmClientesContent(modifier: Modifier = Modifier, controller: NavHostControl
         )
 
         Spacer(Modifier.height(40.dp))
+
 
         // Botón de envío
         Button(
@@ -1869,8 +1939,157 @@ fun FrmEmpleadosContent(modifier: Modifier = Modifier, controller: NavHostContro
         }
     }
 }
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun VisitanteContent(modifier: Modifier = Modifier, controller: NavHostController, userRole: androidx.compose.runtime.MutableState<String>) {
+    val context = LocalContext.current
 
+    var idEmpleado by remember { mutableStateOf("") }
+    var nombreEmpleado by remember { mutableStateOf("") }
+    var puesto by remember { mutableStateOf("") }
+    var telefono by remember { mutableStateOf("") }
 
+    data class Opcion(val value: String, val label: String)
+    val productoOpciones = listOf(
+        Opcion("1", "Sponch Fresa"),
+        Opcion("2", "Emperador Combinado"),
+        Opcion("3", "Florentinas Cajeta")
+    )
+    var productoExpandido by remember { mutableStateOf(false) }
+    var producto by remember { mutableStateOf(productoOpciones[0]) }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Top,
+        horizontalAlignment = Alignment.Start
+    ) {
+
+        Row {
+            Button(
+                onClick = { if (userRole.value == "admin") {
+                    controller.navigate("menuadmin")
+                } else {
+                    controller.navigate("menu")
+                }
+                }, // Se navega al menú
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = Color.Blue
+                )
+            ) {
+                Text(text = "Regresar al Menú")
+            }
+            Button(
+                onClick = { controller.navigate("lstEmpleados") }, // Se navega a la tabla
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = Color.Blue
+                )
+            ) {
+                Text(text = "Regresar a Empleados")
+            }
+        }
+
+        Spacer(Modifier.height(100.dp))
+        Text(
+            text = "Formulario de Empleados",
+            modifier = Modifier
+                .padding(24.dp)
+                .align(alignment = Alignment.CenterHorizontally),
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 24.sp
+        )
+
+        Text(text = "Id Empleado:", modifier = Modifier.align(alignment = Alignment.Start))
+        TextField(
+            value = idEmpleado,
+            onValueChange = { idEmpleado = it },
+            placeholder = { Text("Id del empleado") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(Modifier.height(40.dp))
+
+        Text(text = "Nombre del Empleado:", modifier = Modifier.align(alignment = Alignment.Start))
+        TextField(
+            value = nombreEmpleado,
+            onValueChange = { nombreEmpleado = it },
+            placeholder = { Text("Nombre del empleado") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(Modifier.height(40.dp))
+
+        Text(text = "Puesto:", modifier = Modifier.align(alignment = Alignment.Start))
+        TextField(
+            value = puesto,
+            onValueChange = { puesto = it },
+            placeholder = { Text("Puesto del empleado") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(Modifier.height(40.dp))
+
+        Text(text = "Teléfono:", modifier = Modifier.align(alignment = Alignment.Start))
+        TextField(
+            value = telefono,
+            onValueChange = { telefono = it },
+            placeholder = { Text("Teléfono del empleado") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(Modifier.height(40.dp))
+
+        Button(
+            onClick = {
+                Toast.makeText(context, "Id Empleado: $idEmpleado", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Nombre: $nombreEmpleado", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Puesto: $puesto", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Teléfono: $telefono", Toast.LENGTH_SHORT).show()
+            },
+            modifier = Modifier.align(alignment = Alignment.End)
+        ) {
+            Text(text = "Enviar")
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = "Producto:")
+        ExposedDropdownMenuBox(
+            expanded = productoExpandido,
+            onExpandedChange = { productoExpandido = !productoExpandido }
+        ) {
+            TextField(
+                value = producto.label,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Selecciona una opción") },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = productoExpandido)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+            )
+
+            DropdownMenu(
+                expanded = productoExpandido,
+                onDismissRequest = { productoExpandido = false }
+            ) {
+                productoOpciones.forEach { opcion ->
+                    DropdownMenuItem(
+                        text = { Text(opcion.label) },
+                        onClick = {
+                            producto = opcion
+                            productoExpandido = false
+                        }
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
 @Preview(showBackground = true)
 @Composable
 fun AppContentPreview() {
