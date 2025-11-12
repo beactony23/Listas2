@@ -33,6 +33,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -111,9 +112,12 @@ fun AppContent(modifier: Modifier = Modifier) {
     }
 }
 
-data class ModeloRegistro(
-    val usuario: String,
-    val contrasena: String
+data class ModeloPagos(
+    val idPagos: Int,
+    val idRentas: Int,
+    val monto: Double,
+    val fechaPago: String,
+    val metodoPago: String
 )
 interface ApiService {
     @POST("servicio.php?iniciarSesion")
@@ -123,16 +127,24 @@ interface ApiService {
         @Field("contrasena") contrasena: String
     ): Response<String>
 
-    @GET("servicio.php?registros")
-    suspend fun registros(): List<ModeloRegistro>
+    @GET("servicio.php?Pagos")
+    suspend fun Pagos(): List<ModeloPagos>
 
-    @POST("servicio.php?agregarRegistro")
+    @POST("servicio.php?agregarPagos")
     @FormUrlEncoded
-    suspend fun agregarRegistro(
-        @Field("dato1") dato1: String,
-        @Field("dato2") dato2: Double,
-        @Field("dato3") dato3: Int
+    suspend fun agregarPagos(
+        @Field("idPagos") idPagos: Int,
+        @Field("idRentas") idRentas: Int,
+        @Field("monto") monto: Double,
+        @Field("fechaPago") fechaPago: String,
+        @Field("metodoPago") metodoPago: String
     ): Response<Unit>
+
+    @POST("servicio.php?eliminarPagos")
+    @FormUrlEncoded
+    suspend fun eliminarPagos(
+        @Field("id") id: Int
+    ): Response<String>
 }
 
 val retrofit = Retrofit.Builder()
@@ -1468,16 +1480,31 @@ fun FrmRentasContent(navController: NavHostController, modifier: Modifier, userR
 
 @Composable
 fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRole: androidx.compose.runtime.MutableState<String>) {
-    data class Pagos(val idPago: Int, val idRenta: Int, val monto: Double, val fecha: String, val metodoPago: String)
+    data class Pagos(val idPagos: Int, val idRentas: Int, val monto: Double, val fechaPagos: String, val metodoPago: String)
+    val context = LocalContext.current
     val pagos = remember {
-        mutableStateListOf(
-            Pagos(1, 1, 2000.0, "09-10-2025" ,"Efectivo"),
-            Pagos(2, 2, 1800.0, "10-10-2025" ,"Tarjeta"),
-            Pagos(3, 3, 1500.0, "10-10-2025" ,"Efectivo")
+        mutableStateListOf<ModeloPagos>(
+            //Pagos(1, 1, 2000.0, "09-10-2025" ,"Efectivo"),
+            //Pagos(2, 2, 1800.0, "10-10-2025" ,"Tarjeta"),
+            //Pagos(3, 3, 1500.0, "10-10-2025" ,"Efectivo")
         )
     }
     // productos[index] = Producto(nombre, precio, existencias)
     // productos[2] = Producto("Florentinas Fresa", 20.0, 5)
+
+    LaunchedEffect(Unit) {
+        try {
+            val respuesta = api.Pagos()
+            pagos.clear()
+            pagos.addAll(respuesta)
+        }
+        catch (e: Exception) {
+            Log.e("API", "Error al cargar Pagos: ${e.message}")
+        }
+    }
+
+
+    val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
     Column(
@@ -1532,7 +1559,7 @@ fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRo
 
         Button(
             onClick = {
-                pagos.add(Pagos(4, 4, 1700.0, "10-10-2025" ,"Tarjeta"))
+                //pagos.add(Pagos(4, 4, 1700.0, "10-10-2025" ,"Tarjeta"))
             },
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Black,
@@ -1572,11 +1599,11 @@ fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRo
                     .background(bgColor)
             ) {
                 Text(
-                    "${Pagos.idPago}", modifier = Modifier
+                    "${Pagos.idPagos}", modifier = Modifier
                         .width(150.dp)
                 )
                 Text(
-                    "${Pagos.idRenta}", modifier = Modifier
+                    "${Pagos.idRentas}", modifier = Modifier
                         .width(150.dp)
                 )
                 Text(
@@ -1584,7 +1611,7 @@ fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRo
                         .width(150.dp)
                 )
                 Text(
-                    Pagos.fecha, modifier = Modifier
+                    Pagos.fechaPago, modifier = Modifier
                         .width(150.dp)
                 )
                 Text(
@@ -1593,7 +1620,22 @@ fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRo
                 )
 
                 Button(onClick = {
-                    pagos.removeAt(index)
+                    scope.launch {
+                        try {
+                            val respuesta : Response<String> = api.eliminarPagos(pagos[index].idPagos)
+                            if (respuesta.body() == "correcto") {
+                                Toast.makeText(context, "Pago eliminado con éxito.", Toast.LENGTH_SHORT).show()
+                                pagos.removeAt(index)
+                            } else {
+                                Toast.makeText(context, "Pago eliminado fallido.", Toast.LENGTH_SHORT).show()
+                            }
+
+                        }
+                        catch (e: Exception) {
+                            Log.e("API", "Error al agregar registro: ${e.message}")
+                        }
+                    }
+
                     //Remueve en base al index del producto en la lista
                 })
                 {
