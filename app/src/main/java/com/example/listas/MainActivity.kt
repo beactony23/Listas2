@@ -90,12 +90,10 @@ fun AppContent(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val userRole = remember { mutableStateOf("cliente") }
 
-    NavHost(navController = navController, startDestination = "Login") {
+    NavHost(navController = navController, startDestination = "lstPagos") {
         composable("Login") { LoginContent(navController, modifier, userRole) }
         composable("menu") { MenuContent(navController, modifier) }
         composable("menuadmin") { MenuAdminContent(navController, modifier) }
-        composable("lstReservas") { LstReservasContent(navController, modifier, userRole) }
-        composable("frmReservas") { FrmreservasContent(modifier, navController, userRole) }
         composable("lstTrajes") { LstTrajesContent(navController, modifier, userRole) }
         composable("frmTrajes") { FrmTrajesContent(navController, modifier, userRole) }
         composable("lstClientes") { LstClientesContent(navController, modifier, userRole) }
@@ -106,15 +104,15 @@ fun AppContent(modifier: Modifier = Modifier) {
         composable("frmPagos") { FrmPagosContent(modifier, navController, userRole) }
         composable("lstEmpleados") { LstEmpleadosContent(navController, modifier, userRole) }
         composable("frmEmpleados") { FrmEmpleadosContent(modifier, navController, userRole) }
-        composable("Visitante") { VisitanteContent(modifier, navController, userRole) }
 
 
     }
 }
 
+
 data class ModeloPagos(
     val idPagos: Int,
-    val idRentas: Int,
+    val idRenta: Int,
     val monto: Double,
     val fechaPago: String,
     val metodoPago: String
@@ -133,13 +131,21 @@ interface ApiService {
     @POST("servicio.php?agregarPagos")
     @FormUrlEncoded
     suspend fun agregarPagos(
-        @Field("idPagos") idPagos: Int,
-        @Field("idRentas") idRentas: Int,
+        @Field("idRenta") idRenta: Int,
         @Field("monto") monto: Double,
         @Field("fechaPago") fechaPago: String,
         @Field("metodoPago") metodoPago: String
-    ): Response<Unit>
+    ): Response<String>
 
+    @POST("servicio.php?modificarPagos")
+    @FormUrlEncoded
+    suspend fun modificarPagos(
+        @Field("idPagos") idPagos: Int,
+        @Field("idRenta") idRenta: Int,
+        @Field("monto") monto: Double,
+        @Field("fechaPago") fechaPago: String,
+        @Field("metodoPago") metodoPago: String
+    ): Response<String>
     @POST("servicio.php?eliminarPagos")
     @FormUrlEncoded
     suspend fun eliminarPagos(
@@ -148,7 +154,7 @@ interface ApiService {
 }
 
 val retrofit = Retrofit.Builder()
-    .baseUrl("https://olive-strengthen-dome-exempt.trycloudflare.com/api/api/")
+    .baseUrl("https://dale-although-industries-injuries.trycloudflare.com/api/api/")
     .addConverterFactory(ScalarsConverterFactory.create())
     .addConverterFactory(GsonConverterFactory.create())
     .build()
@@ -211,8 +217,15 @@ fun LoginContent(navController: NavHostController, modifier: Modifier, userRole:
                         val respuesta : Response<String> = api.iniciarSesion(usuario, contrasena)
                         if (respuesta.body() == "correcto") {
                         Toast.makeText(context, "Inicio de sesión con éxito.", Toast.LENGTH_SHORT).show()
-                        navController.navigate("menu")
 
+
+                            if (usuario == "Admin") {
+                                userRole.value = "admin"
+                                navController.navigate("menuadmin")
+                            } else {
+                                userRole.value = "cliente"
+                                navController.navigate("menu")
+                            }
                         } else {
                         Toast.makeText(context, "Inicio de sesión fallido.", Toast.LENGTH_SHORT).show()
                         }
@@ -266,25 +279,6 @@ fun MenuContent(navController: NavHostController, modifier: Modifier) {
             fontWeight = FontWeight.ExtraBold,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-
-        Button(
-            onClick = {
-                navController.navigate("lstReservas")
-            },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Black,
-                contentColor = Color.White
-            ),
-            modifier = Modifier
-                .size(width = 150.dp, height = 40.dp)
-                .align(Alignment.CenterHorizontally)
-        ) {
-
-            Text("Reservas")
-        }
 
         Spacer(modifier = Modifier.height(16.dp))
             Button(
@@ -382,24 +376,6 @@ fun MenuAdminContent(navController: NavHostController, modifier: Modifier) {
 
         Button(
             onClick = {
-                navController.navigate("lstReservas")
-            },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Black,
-                contentColor = Color.White
-            ),
-            modifier = Modifier
-                .size(width = 150.dp, height = 40.dp)
-                .align(Alignment.CenterHorizontally)
-        ) {
-
-            Text("Reservas")
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = {
                 navController.navigate("lstTrajes")
             },
             colors = ButtonDefaults.buttonColors(
@@ -484,276 +460,6 @@ fun MenuAdminContent(navController: NavHostController, modifier: Modifier) {
         ) {
 
             Text("Empleados")
-        }
-    }
-}
-
-@Composable
-fun LstReservasContent(navController: NavHostController, modifier: Modifier, userRole: androidx.compose.runtime.MutableState<String>) {
-    data class Reserva(val idReserva: Int, val idCliente: Int, val idTraje: Int, val fecha: String, val estado: String)
-    val reserva = remember {
-        mutableStateListOf(
-            Reserva(1, 1, 23, "09-10-2025" ,"Activo"),
-            Reserva(2, 2, 23, "10-10-2025" ,"Activo"),
-            Reserva(3, 3, 23, "10-10-2025" ,"Activo"),
-            Reserva(4, 4, 23, "10-10-2025" ,"Activo"),
-        )
-    }
-    // productos[index] = Producto(nombre, precio, existencias)
-    // productos[2] = Producto("Florentinas Fresa", 20.0, 5)
-    val scrollState = rememberScrollState()
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp)
-            .horizontalScroll(scrollState)
-            .padding(8.dp),
-        horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.Top
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween, // Separa los botones
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Botón para ir al Menú
-            Button(
-                onClick = { if (userRole.value == "admin") {
-                    navController.navigate("menuadmin")
-                } else {
-                    navController.navigate("menu")
-                }
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = Color.Blue
-                )
-            ) {
-                Text(
-                    "Menú",
-                    fontFamily = FontFamily.Serif,
-                    style = TextStyle(textDecoration = TextDecoration.Underline)
-                )
-            }
-
-            Button(
-                onClick = { navController.navigate("frmReservas") },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = Color.Blue
-                )
-            ) {
-                Text(
-                    "Formulario Reservas",
-                    fontFamily = FontFamily.Serif,
-                    style = TextStyle(textDecoration = TextDecoration.Underline)
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = {
-                reserva.add(Reserva(4, 4, 23, "10-10-2025" ,"En cliente"))
-            },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Black,
-                contentColor = Color.White
-            ),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                "Agregar Producto Prueba",
-                style = TextStyle(textDecoration = TextDecoration.Underline),
-                textAlign = TextAlign.Start,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row {
-            Text("Id Reserva", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
-
-            Text("Id Cliente", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
-
-            Text("Id Traje", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
-
-            Text("Fecha de Pago", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
-
-            Text("Estado", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
-
-            Text("Eliminar", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
-
-        }
-        HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
-        reserva.forEachIndexed { index, Reserva ->
-            val bgColor = if (index % 2 == 0) Color(0xFFF5F5F5) else Color.White
-
-            Row (
-                modifier = Modifier
-                    .background(bgColor)
-            ) {
-                Text(
-                    "${Reserva.idReserva}", modifier = Modifier
-                        .width(150.dp)
-                )
-                Text(
-                    "${Reserva.idCliente}", modifier = Modifier
-                        .width(150.dp)
-                )
-                Text(
-                    "${Reserva.idTraje}", modifier = Modifier
-                        .width(150.dp)
-                )
-                Text(
-                    Reserva.fecha, modifier = Modifier
-                        .width(150.dp)
-                )
-                Text(
-                    Reserva.estado, modifier = Modifier
-                        .width(150.dp)
-                )
-
-                Button(onClick = {
-                    reserva.removeAt(index)
-                    //Remueve en base al index del producto en la lista
-                })
-                {
-                    Text("Eliminar")
-                }
-
-            }
-        }
-
-    }
-}
-@Composable
-fun FrmreservasContent(modifier: Modifier = Modifier, controller: NavHostController, userRole: androidx.compose.runtime.MutableState<String>
-) {
-    val context = LocalContext.current
-    val scrollState = rememberScrollState()
-
-    var idReserva by remember { mutableStateOf("") }
-    var idCliente by remember { mutableStateOf("") }
-    var idTraje by remember { mutableStateOf("") }
-    var fechaReserva by remember { mutableStateOf("") }
-    var estado by remember { mutableStateOf("") }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp)
-        .verticalScroll(scrollState),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.Start
-    ) {
-
-        Row {
-            Button(
-                onClick = { if (userRole.value == "admin") {
-                    controller.navigate("menuadmin")
-                } else {
-                    controller.navigate("menu")
-                }
-                }, // Se navega al menú
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = Color.Blue),
-            ) {
-                Text(
-                    text = "Regresar al Menú",
-                    fontFamily = FontFamily.Serif,
-                )
-
-            }
-            Button(
-                onClick = { controller.navigate("lstReservas") }, // Se navega a la tabla
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = Color.Blue)
-            ) {
-                Text(text = "Regresar a Reservas",
-                    fontFamily = FontFamily.Serif, )
-            }
-        }
-
-        Spacer(Modifier.height(100.dp))
-        Text(
-            text = "Formulario de Reservas",
-            modifier = Modifier
-                .padding(24.dp)
-                .align(alignment = Alignment.CenterHorizontally),
-            fontFamily = FontFamily.Serif,
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = 24.sp
-        )
-
-        if (userRole.value == "admin") {
-            Text(text = "ID Reserva:", modifier = Modifier.align(alignment = Alignment.Start))
-        TextField(
-            value = idReserva,
-            onValueChange = { idReserva = it },
-            placeholder = { Text("Id de la reserva") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(40.dp))
-        }
-
-        Text(text = "id Cliente:", modifier = Modifier.align(alignment = Alignment.Start))
-        TextField(
-            value = idCliente,
-            onValueChange = { idCliente = it },
-            placeholder = { Text("Id del cliente") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(40.dp))
-
-        Text(text = "id Traje:", modifier = Modifier.align(alignment = Alignment.Start))
-        TextField(
-            value = idTraje,
-            onValueChange = { idTraje = it },
-            placeholder = { Text("Id del Traje") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(40.dp))
-
-        Text(text = "Fecha Reserva:", modifier = Modifier.align(alignment = Alignment.Start))
-        TextField(
-            value = fechaReserva,
-            onValueChange = { fechaReserva = it },
-            placeholder = { Text("Fecha de la reserva") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(40.dp))
-
-        if (userRole.value == "admin") {
-        Text(text = "Estado:", modifier = Modifier.align(alignment = Alignment.Start))
-        TextField(
-            value = estado,
-            onValueChange = { estado = it },
-            placeholder = { Text("Estado de la reserva (Activo o Inactivo") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(40.dp))
-        }
-
-        Button(
-            onClick = {
-                if (userRole.value == "admin") {
-                Toast.makeText(context, "Id Reserva: $idReserva", Toast.LENGTH_SHORT).show()
-                }
-                Toast.makeText(context, "Id Cliente: $idCliente", Toast.LENGTH_SHORT).show()
-                Toast.makeText(context, "Id Traje: $idTraje", Toast.LENGTH_SHORT).show()
-                Toast.makeText(context, "fechaReserva: $fechaReserva", Toast.LENGTH_SHORT).show()
-                if (userRole.value == "admin") {
-                Toast.makeText(context, "Estado: $estado", Toast.LENGTH_SHORT).show()
-                }
-            },
-            modifier = Modifier.align(alignment = Alignment.End)
-        ) {
-            Text(text = "Enviar")
         }
     }
 }
@@ -1480,177 +1186,272 @@ fun FrmRentasContent(navController: NavHostController, modifier: Modifier, userR
 
 @Composable
 fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRole: androidx.compose.runtime.MutableState<String>) {
-    data class Pagos(val idPagos: Int, val idRentas: Int, val monto: Double, val fechaPagos: String, val metodoPago: String)
     val context = LocalContext.current
-    val pagos = remember {
-        mutableStateListOf<ModeloPagos>(
-            //Pagos(1, 1, 2000.0, "09-10-2025" ,"Efectivo"),
-            //Pagos(2, 2, 1800.0, "10-10-2025" ,"Tarjeta"),
-            //Pagos(3, 3, 1500.0, "10-10-2025" ,"Efectivo")
-        )
-    }
-    // productos[index] = Producto(nombre, precio, existencias)
-    // productos[2] = Producto("Florentinas Fresa", 20.0, 5)
+    val scope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
+    val pagos = remember { mutableStateListOf<ModeloPagos>() }
 
+    // Variables del formulario
+    var idPagos by remember { mutableStateOf(0) }
+    var idRenta by remember { mutableStateOf("") }
+    var monto by remember { mutableStateOf("") }
+    var fechaPago by remember { mutableStateOf("") }
+    var metodoPago by remember { mutableStateOf("") }
+
+    // Cargar lista al iniciar
     LaunchedEffect(Unit) {
         try {
             val respuesta = api.Pagos()
             pagos.clear()
             pagos.addAll(respuesta)
-        }
-        catch (e: Exception) {
+        } catch (e: Exception) {
             Log.e("API", "Error al cargar Pagos: ${e.message}")
         }
     }
-
-
-    val scope = rememberCoroutineScope()
-    val scrollState = rememberScrollState()
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(24.dp)
-            .horizontalScroll(scrollState)
-            .padding(8.dp),
-        horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.Top
     ) {
+        // Botones de navegación
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween, // Separa los botones
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Botón para ir al Menú
-            Button(
-                onClick = { if (userRole.value == "admin") {
-                    navController.navigate("menuadmin")
-                } else {
-                    navController.navigate("menu")
-                }
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = Color.Blue
-                )
-            ) {
-                Text(
-                    "Menú",
-                    fontFamily = FontFamily.Serif,
-                    style = TextStyle(textDecoration = TextDecoration.Underline)
-                )
+            Button(onClick = {
+                if (userRole.value == "admin") navController.navigate("menuadmin")
+                else navController.navigate("menu")
+            }) {
+                Text("Menú")
             }
 
-            Button(
-                onClick = { navController.navigate("frmPagos") },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = Color.Blue
-                )
-            ) {
-                Text(
-                    "Formulario Pagos",
-                    fontFamily = FontFamily.Serif,
-                    style = TextStyle(textDecoration = TextDecoration.Underline)
-                )
-            }
         }
-        Spacer(modifier = Modifier.height(16.dp))
 
+        Spacer(Modifier.height(24.dp))
+
+        Text(
+            text = if (idPagos == 0) "Agregar Pago" else "Modificar Pago",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        // Campos del formulario
+        Text("Id Pagos:")
+        TextField(
+            value = if (idPagos == 0) "" else idPagos.toString(),
+            onValueChange = {
+                idPagos = it.toIntOrNull() ?: 0  // Convierte a Int, si falla usa 0
+            },
+            placeholder = { Text("Id Pagos") },
+            enabled = false,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        Text("Id Renta:")
+        TextField(
+            value = idRenta,
+            onValueChange = { idRenta = it },
+            placeholder = { Text("Id Renta") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(16.dp))
+
+        Text("Monto:")
+        TextField(
+            value = monto,
+            onValueChange = { monto = it },
+            placeholder = { Text("Monto") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(16.dp))
+
+        Text("Fecha de Pago:")
+        TextField(
+            value = fechaPago,
+            onValueChange = { fechaPago = it },
+            placeholder = { Text("Día-Mes-Año") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(16.dp))
+
+        Text("Método de pago:")
+        TextField(
+            value = metodoPago,
+            onValueChange = { metodoPago = it },
+            placeholder = { Text("Método de pago") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(16.dp))
+
+        // Botón agregar/modificar
         Button(
             onClick = {
-                //pagos.add(Pagos(4, 4, 1700.0, "10-10-2025" ,"Tarjeta"))
-            },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Black,
-                contentColor = Color.White
-            ),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                "Agregar Producto Prueba",
-                style = TextStyle(textDecoration = TextDecoration.Underline),
-                textAlign = TextAlign.Start,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row {
-            Text("Id Pago", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
-
-            Text("Id Renta", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
-
-            Text("Monto", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
-
-            Text("Fecha de Pago", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
-
-            Text("Metodo de Pago", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
-
-            Text("Eliminar", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
-
-        }
-        HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
-        pagos.forEachIndexed { index, Pagos ->
-            val bgColor = if (index % 2 == 0) Color(0xFFF5F5F5) else Color.White
-
-            Row (
-                modifier = Modifier
-                    .background(bgColor)
-            ) {
-                Text(
-                    "${Pagos.idPagos}", modifier = Modifier
-                        .width(150.dp)
-                )
-                Text(
-                    "${Pagos.idRentas}", modifier = Modifier
-                        .width(150.dp)
-                )
-                Text(
-                    "$${Pagos.monto}", modifier = Modifier
-                        .width(150.dp)
-                )
-                Text(
-                    Pagos.fechaPago, modifier = Modifier
-                        .width(150.dp)
-                )
-                Text(
-                    Pagos.metodoPago, modifier = Modifier
-                        .width(150.dp)
-                )
-
-                Button(onClick = {
-                    scope.launch {
-                        try {
-                            val respuesta : Response<String> = api.eliminarPagos(pagos[index].idPagos)
-                            if (respuesta.body() == "correcto") {
-                                Toast.makeText(context, "Pago eliminado con éxito.", Toast.LENGTH_SHORT).show()
-                                pagos.removeAt(index)
+                scope.launch {
+                    try {
+                        if (idPagos == 0) {
+                            // Insertar
+                            val respuesta = api.agregarPagos(
+                                idRenta.toInt(),
+                                monto.toDouble(),
+                                fechaPago,
+                                metodoPago
+                            )
+                            val nuevoId = respuesta.body()?.toIntOrNull() ?: 0
+                            if (nuevoId > 0) {
+                                Toast.makeText(context, "Pago agregado.", Toast.LENGTH_SHORT).show()
+                                pagos.add(
+                                    ModeloPagos(
+                                        idPagos = nuevoId,
+                                        idRenta = idRenta.toInt(),
+                                        monto = monto.toDouble(),
+                                        fechaPago = fechaPago,
+                                        metodoPago = metodoPago
+                                    )
+                                )
                             } else {
-                                Toast.makeText(context, "Pago eliminado fallido.", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Error al agregar.", Toast.LENGTH_SHORT)
+                                    .show()
                             }
+                        } else {
+                            // Editar/modificar
+                            val respuesta = api.modificarPagos(
+                                idPagos.toInt(),
+                                idRenta.toInt(),
+                                monto.toDouble(),
+                                fechaPago.toString(),
+                                metodoPago.toString()
+                            )
+                            if (respuesta.body() == "correcto") {
+                                Toast.makeText(context, "Pago modificado.", Toast.LENGTH_SHORT)
+                                    .show()
 
+                                // Refrescar lista o actualizar localmente:
+                                val index = pagos.indexOfFirst { it.idPagos == idPagos }
+                                if (index >= 0) {
+                                    pagos[index] = ModeloPagos(
+                                        idPagos = idPagos,
+                                        idRenta = idRenta.toInt(),
+                                        monto = monto.toDouble(),
+                                        fechaPago = fechaPago,
+                                        metodoPago = metodoPago
+                                    )
+                                }
+                            } else {
+                                Toast.makeText(context, "Error al modificar.", Toast.LENGTH_SHORT)
+                                    .show()
+                            }
                         }
-                        catch (e: Exception) {
-                            Log.e("API", "Error al agregar registro: ${e.message}")
+                        // Limpiar formulario después
+                        idPagos = 0
+                        idRenta = ""
+                        monto = ""
+                        fechaPago = ""
+                        metodoPago = ""
+                    } catch (e: Exception) {
+                        Log.e("API", "Error al guardar pago: ${e.message}")
+                    }
+                }
+            },
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Text(text = if (idPagos == 0) "Añadir" else "Modificar")
+        }
+
+        Spacer(Modifier.height(32.dp))
+
+        // Lista de pagos
+        // Scroll vertical para toda la tabla
+        val verticalScroll = rememberScrollState()
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(verticalScroll) // solo vertical aquí
+        ) {
+            // Fila de encabezados con scroll horizontal
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState())
+            ) {
+                Text("Id Pago", modifier = Modifier.width(80.dp), fontWeight = FontWeight.Bold)
+                Text("Id Renta", modifier = Modifier.width(80.dp), fontWeight = FontWeight.Bold)
+                Text("Monto", modifier = Modifier.width(100.dp), fontWeight = FontWeight.Bold)
+                Text("Fecha", modifier = Modifier.width(120.dp), fontWeight = FontWeight.Bold)
+                Text("Método", modifier = Modifier.width(120.dp), fontWeight = FontWeight.Bold)
+                Text("Acciones", modifier = Modifier.width(160.dp), fontWeight = FontWeight.Bold)
+            }
+            HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+
+            // Filas de pagos
+            pagos.forEachIndexed { index, pago ->
+                val bgColor = if (index % 2 == 0) Color(0xFFF5F5F5) else Color.White
+                Row(
+                    modifier = Modifier
+                        .background(bgColor)
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()) // solo horizontal para la fila
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("${pago.idPagos}", modifier = Modifier.width(80.dp))
+                    Text("${pago.idRenta}", modifier = Modifier.width(80.dp))
+                    Text("$${pago.monto}", modifier = Modifier.width(100.dp))
+                    Text(pago.fechaPago, modifier = Modifier.width(120.dp))
+                    Text(pago.metodoPago, modifier = Modifier.width(120.dp))
+
+                    Row(modifier = Modifier.width(160.dp)) {
+                        Button(onClick = {
+                            // Editar: cargar los datos al formulario
+                            idPagos = pago.idPagos
+                            idRenta = pago.idRenta.toString()
+                            monto = pago.monto.toString()
+                            fechaPago = pago.fechaPago
+                            metodoPago = pago.metodoPago
+                        }) {
+                            Text("Editar")
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(onClick = {
+                            scope.launch {
+                                try {
+                                    val respuesta = api.eliminarPagos(pago.idPagos)
+                                    if (respuesta.body() == "correcto") {
+                                        Toast.makeText(
+                                            context,
+                                            "Pago eliminado.",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        pagos.removeAt(index)
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "Error al eliminar.",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("API", "Error al eliminar pago: ${e.message}")
+                                }
+                            }
+                        }) {
+                            Text("Eliminar")
                         }
                     }
-
-                    //Remueve en base al index del producto en la lista
-                })
-                {
-                    Text("Eliminar")
                 }
-
             }
         }
-
     }
 }
+
 @Composable
 fun FrmPagosContent(modifier: Modifier = Modifier, controller: NavHostController, userRole: androidx.compose.runtime.MutableState<String>
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     var idPago by remember { mutableStateOf("") }
     var idRenta by remember { mutableStateOf("") }
@@ -1696,14 +1497,6 @@ fun FrmPagosContent(modifier: Modifier = Modifier, controller: NavHostController
             fontSize = 24.sp
         )
 
-        Text(text = "Id Pago:", modifier = Modifier.align(alignment = Alignment.Start))
-        TextField(
-            value = idPago,
-            onValueChange = { idPago = it },
-            placeholder = { Text("Id Pago") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
         Spacer(Modifier.height(40.dp))
 
         Text(text = "Id Renta:", modifier = Modifier.align(alignment = Alignment.Start))
@@ -1746,11 +1539,18 @@ fun FrmPagosContent(modifier: Modifier = Modifier, controller: NavHostController
 
         Button(
             onClick = {
-                Toast.makeText(context, "Id Pago: $idPago", Toast.LENGTH_SHORT).show()
-                Toast.makeText(context, "Id Renta: $idRenta", Toast.LENGTH_SHORT).show()
-                Toast.makeText(context, "Monto: $monto", Toast.LENGTH_SHORT).show()
-                Toast.makeText(context, "Fecha de pago: $fechaPago", Toast.LENGTH_SHORT).show()
-                Toast.makeText(context, "Metodo de pago: $metodoPago", Toast.LENGTH_SHORT).show()
+                scope.launch {
+                    try {
+                        val respuesta = api.agregarPagos(idRenta.toInt(), monto.toDouble(), fechaPago, metodoPago)
+                        if ((respuesta.body()?.toIntOrNull() ?: 0) > 0)
+                            Toast.makeText(context, "Pago agregado con éxito.", Toast.LENGTH_SHORT).show()
+                        else
+                            Toast.makeText(context, "Error al agregar pago.", Toast.LENGTH_SHORT).show()
+                    }
+                    catch (e: Exception) {
+                        Log.e("API", "Error al agregar pago: ${e.message}")
+                    }
+                }
             },
             modifier = Modifier.align(alignment = Alignment.End)
         ) {
@@ -1982,156 +1782,7 @@ fun FrmEmpleadosContent(modifier: Modifier = Modifier, controller: NavHostContro
     }
 }
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun VisitanteContent(modifier: Modifier = Modifier, controller: NavHostController, userRole: androidx.compose.runtime.MutableState<String>) {
-    val context = LocalContext.current
 
-    var idEmpleado by remember { mutableStateOf("") }
-    var nombreEmpleado by remember { mutableStateOf("") }
-    var puesto by remember { mutableStateOf("") }
-    var telefono by remember { mutableStateOf("") }
-
-    data class Opcion(val value: String, val label: String)
-    val productoOpciones = listOf(
-        Opcion("1", "Sponch Fresa"),
-        Opcion("2", "Emperador Combinado"),
-        Opcion("3", "Florentinas Cajeta")
-    )
-    var productoExpandido by remember { mutableStateOf(false) }
-    var producto by remember { mutableStateOf(productoOpciones[0]) }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.Start
-    ) {
-
-        Row {
-            Button(
-                onClick = { if (userRole.value == "admin") {
-                    controller.navigate("menuadmin")
-                } else {
-                    controller.navigate("menu")
-                }
-                }, // Se navega al menú
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = Color.Blue
-                )
-            ) {
-                Text(text = "Regresar al Menú")
-            }
-            Button(
-                onClick = { controller.navigate("lstEmpleados") }, // Se navega a la tabla
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = Color.Blue
-                )
-            ) {
-                Text(text = "Regresar a Empleados")
-            }
-        }
-
-        Spacer(Modifier.height(100.dp))
-        Text(
-            text = "Formulario de Empleados",
-            modifier = Modifier
-                .padding(24.dp)
-                .align(alignment = Alignment.CenterHorizontally),
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = 24.sp
-        )
-
-        Text(text = "Id Empleado:", modifier = Modifier.align(alignment = Alignment.Start))
-        TextField(
-            value = idEmpleado,
-            onValueChange = { idEmpleado = it },
-            placeholder = { Text("Id del empleado") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(40.dp))
-
-        Text(text = "Nombre del Empleado:", modifier = Modifier.align(alignment = Alignment.Start))
-        TextField(
-            value = nombreEmpleado,
-            onValueChange = { nombreEmpleado = it },
-            placeholder = { Text("Nombre del empleado") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(40.dp))
-
-        Text(text = "Puesto:", modifier = Modifier.align(alignment = Alignment.Start))
-        TextField(
-            value = puesto,
-            onValueChange = { puesto = it },
-            placeholder = { Text("Puesto del empleado") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(40.dp))
-
-        Text(text = "Teléfono:", modifier = Modifier.align(alignment = Alignment.Start))
-        TextField(
-            value = telefono,
-            onValueChange = { telefono = it },
-            placeholder = { Text("Teléfono del empleado") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(40.dp))
-
-        Button(
-            onClick = {
-                Toast.makeText(context, "Id Empleado: $idEmpleado", Toast.LENGTH_SHORT).show()
-                Toast.makeText(context, "Nombre: $nombreEmpleado", Toast.LENGTH_SHORT).show()
-                Toast.makeText(context, "Puesto: $puesto", Toast.LENGTH_SHORT).show()
-                Toast.makeText(context, "Teléfono: $telefono", Toast.LENGTH_SHORT).show()
-            },
-            modifier = Modifier.align(alignment = Alignment.End)
-        ) {
-            Text(text = "Enviar")
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(text = "Producto:")
-        ExposedDropdownMenuBox(
-            expanded = productoExpandido,
-            onExpandedChange = { productoExpandido = !productoExpandido }
-        ) {
-            TextField(
-                value = producto.label,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Selecciona una opción") },
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = productoExpandido)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor()
-            )
-
-            DropdownMenu(
-                expanded = productoExpandido,
-                onDismissRequest = { productoExpandido = false }
-            ) {
-                productoOpciones.forEach { opcion ->
-                    DropdownMenuItem(
-                        text = { Text(opcion.label) },
-                        onClick = {
-                            producto = opcion
-                            productoExpandido = false
-                        }
-                    )
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-    }
-}
 @Preview(showBackground = true)
 @Composable
 fun AppContentPreview() {
