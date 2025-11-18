@@ -115,8 +115,11 @@ data class ModeloPagos(
     val idRenta: Int,
     val monto: Double,
     val fechaPago: String,
-    val metodoPago: String
+    val metodoPago: String,
+    
 )
+
+data class OpcionPagos(val value: String, val label: String)
 interface ApiService {
     @POST("servicio.php?iniciarSesion")
     @FormUrlEncoded
@@ -1198,6 +1201,7 @@ fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRo
     var fechaPago by remember { mutableStateOf("") }
     var metodoPago by remember { mutableStateOf("") }
 
+
     // Cargar lista al iniciar
     LaunchedEffect(Unit) {
         try {
@@ -1318,6 +1322,7 @@ fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRo
                                     .show()
                             }
                         } else {
+
                             // Editar/modificar
                             val respuesta = api.modificarPagos(
                                 idPagos.toInt(),
@@ -1342,7 +1347,8 @@ fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRo
                                     )
                                 }
                             } else {
-                                Toast.makeText(context, "Error al modificar.", Toast.LENGTH_SHORT)
+                                Toast.makeText(context, "idPago: $idPagos, idRenta: $idRenta, monto: $monto, fechaPago: $fechaPago, metodoPago: $metodoPago", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, " Error al modificar.", Toast.LENGTH_SHORT)
                                     .show()
                             }
                         }
