@@ -113,13 +113,14 @@ fun AppContent(modifier: Modifier = Modifier) {
 data class ModeloPagos(
     val idPagos: Int,
     val idRenta: Int,
+    val descripcionRentas: String,
     val monto: Double,
     val fechaPago: String,
     val metodoPago: String,
     
 )
 
-data class OpcionPagos(val value: String, val label: String)
+data class OpcionRenta(val value: String, val label: String)
 interface ApiService {
     @POST("servicio.php?iniciarSesion")
     @FormUrlEncoded
@@ -130,6 +131,9 @@ interface ApiService {
 
     @GET("servicio.php?Pagos")
     suspend fun Pagos(): List<ModeloPagos>
+
+    @GET("servicio.php?rentaCombo")
+    suspend fun rentaCombo(): List<OpcionRenta>
 
     @POST("servicio.php?agregarPagos")
     @FormUrlEncoded
@@ -152,12 +156,12 @@ interface ApiService {
     @POST("servicio.php?eliminarPagos")
     @FormUrlEncoded
     suspend fun eliminarPagos(
-        @Field("id") id: Int
+        @Field("idPagos") idPagos: Int
     ): Response<String>
 }
 
 val retrofit = Retrofit.Builder()
-    .baseUrl("https://dale-although-industries-injuries.trycloudflare.com/api/api/")
+    .baseUrl("https://straight-prominent-quiz-exclude.trycloudflare.com/api/api/")
     .addConverterFactory(ScalarsConverterFactory.create())
     .addConverterFactory(GsonConverterFactory.create())
     .build()
@@ -1187,6 +1191,7 @@ fun FrmRentasContent(navController: NavHostController, modifier: Modifier, userR
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRole: androidx.compose.runtime.MutableState<String>) {
     val context = LocalContext.current
@@ -1201,6 +1206,16 @@ fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRo
     var fechaPago by remember { mutableStateOf("") }
     var metodoPago by remember { mutableStateOf("") }
 
+    val rentaOpciones = remember {
+        mutableStateListOf<OpcionRenta>(
+            OpcionRenta("", "Selecciona una opción"),
+            //OpcionCategoria("1", "Galletas"),
+            //OpcionCategoria("2", "Refrescos")
+        )
+    }
+// ...
+    var rentaExpandido by remember { mutableStateOf(value = false) }
+    var renta by remember { mutableStateOf(value = rentaOpciones.first()) }
 
     // Cargar lista al iniciar
     LaunchedEffect(Unit) {
@@ -1208,6 +1223,9 @@ fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRo
             val respuesta = api.Pagos()
             pagos.clear()
             pagos.addAll(respuesta)
+            val respuesta2 = api.rentaCombo()
+            rentaOpciones.clear()
+            rentaOpciones.addAll(respuesta2)
         } catch (e: Exception) {
             Log.e("API", "Error al cargar Pagos: ${e.message}")
         }
@@ -1256,14 +1274,43 @@ fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRo
 
         Spacer(Modifier.height(16.dp))
 
-        Text("Id Renta:")
-        TextField(
-            value = idRenta,
-            onValueChange = { idRenta = it },
-            placeholder = { Text("Id Renta") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(Modifier.height(16.dp))
+        Text(text = "Descripción renta:")
+
+        ExposedDropdownMenuBox(
+            expanded = rentaExpandido,
+            onExpandedChange = { rentaExpandido = !rentaExpandido }
+        ) {
+            TextField(
+                value = renta.label,
+                onValueChange = { /* No usado aquí ya que es de solo lectura */ },
+                readOnly = true,
+                label = { Text(text = "Selecciona una opción") },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = rentaExpandido)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+            )
+
+            DropdownMenu(
+                expanded = rentaExpandido,
+                onDismissRequest = { rentaExpandido = false }
+            ) {
+                rentaOpciones.forEach { opcion ->
+                    DropdownMenuItem(
+                        text = { Text(opcion.label) },
+                        onClick = {
+                            renta = opcion
+                            idRenta = opcion.value
+                            rentaExpandido = false
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         Text("Monto:")
         TextField(
@@ -1312,6 +1359,7 @@ fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRo
                                     ModeloPagos(
                                         idPagos = nuevoId,
                                         idRenta = idRenta.toInt(),
+                                        descripcionRentas = renta.label,
                                         monto = monto.toDouble(),
                                         fechaPago = fechaPago,
                                         metodoPago = metodoPago
@@ -1341,13 +1389,13 @@ fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRo
                                     pagos[index] = ModeloPagos(
                                         idPagos = idPagos,
                                         idRenta = idRenta.toInt(),
+                                        descripcionRentas = renta.label,
                                         monto = monto.toDouble(),
                                         fechaPago = fechaPago,
                                         metodoPago = metodoPago
                                     )
                                 }
                             } else {
-                                Toast.makeText(context, "idPago: $idPagos, idRenta: $idRenta, monto: $monto, fechaPago: $fechaPago, metodoPago: $metodoPago", Toast.LENGTH_SHORT).show()
                                 Toast.makeText(context, " Error al modificar.", Toast.LENGTH_SHORT)
                                     .show()
                             }
@@ -1384,7 +1432,7 @@ fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRo
                 modifier = Modifier.horizontalScroll(rememberScrollState())
             ) {
                 Text("Id Pago", modifier = Modifier.width(80.dp), fontWeight = FontWeight.Bold)
-                Text("Id Renta", modifier = Modifier.width(80.dp), fontWeight = FontWeight.Bold)
+                Text("Descripción Renta", modifier = Modifier.width(80.dp), fontWeight = FontWeight.Bold)
                 Text("Monto", modifier = Modifier.width(100.dp), fontWeight = FontWeight.Bold)
                 Text("Fecha", modifier = Modifier.width(120.dp), fontWeight = FontWeight.Bold)
                 Text("Método", modifier = Modifier.width(120.dp), fontWeight = FontWeight.Bold)
@@ -1404,7 +1452,7 @@ fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRo
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("${pago.idPagos}", modifier = Modifier.width(80.dp))
-                    Text("${pago.idRenta}", modifier = Modifier.width(80.dp))
+                    Text("${pago.descripcionRentas}", modifier = Modifier.width(80.dp))
                     Text("$${pago.monto}", modifier = Modifier.width(100.dp))
                     Text(pago.fechaPago, modifier = Modifier.width(120.dp))
                     Text(pago.metodoPago, modifier = Modifier.width(120.dp))
