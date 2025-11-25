@@ -68,6 +68,8 @@ import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
 import retrofit2.http.POST
+import android.content.Context
+import android.content.SharedPreferences
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -89,8 +91,19 @@ class MainActivity : ComponentActivity() {
 fun AppContent(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val userRole = remember { mutableStateOf("cliente") }
+    val context = LocalContext.current
+    val sesionIniciada : String? = getSessionValue(context, "sesionIniciada", "no")
 
-    NavHost(navController = navController, startDestination = "lstPagos") {
+    var startDestination = "LstPagos"
+
+    if(sesionIniciada == "yesAdmin"){
+        startDestination = "menuadmin"
+    } else if (sesionIniciada == "yes"){
+        startDestination = "menu"
+    }
+
+
+    NavHost(navController = navController, startDestination = startDestination) {
         composable("Login") { LoginContent(navController, modifier, userRole) }
         composable("menu") { MenuContent(navController, modifier) }
         composable("menuadmin") { MenuAdminContent(navController, modifier) }
@@ -99,9 +112,7 @@ fun AppContent(modifier: Modifier = Modifier) {
         composable("lstClientes") { LstClientesContent(navController, modifier, userRole) }
         composable("frmClientes") { FrmClientesContent(modifier, navController, userRole) }
         composable("lstRentas") { LstRentasContent(navController, modifier, userRole) }
-        composable("frmRentas") { FrmRentasContent(navController, modifier, userRole) }
         composable("lstPagos") { LstPagosContent(navController, modifier, userRole) }
-        composable("frmPagos") { FrmPagosContent(modifier, navController, userRole) }
         composable("lstEmpleados") { LstEmpleadosContent(navController, modifier, userRole) }
         composable("frmEmpleados") { FrmEmpleadosContent(modifier, navController, userRole) }
 
@@ -109,6 +120,22 @@ fun AppContent(modifier: Modifier = Modifier) {
     }
 }
 
+
+
+
+fun setSessionValue(context: Context, key: String, value: String) {
+    val sharedPrefs: SharedPreferences = context.getSharedPreferences("sharedPrefs", Context.MODE_PRIVATE)
+    val editor = sharedPrefs.edit()
+    editor.putString(key, value)
+    editor.apply()
+    // setSessionValue(context, "sesionIniciada", "yes")
+}
+
+fun getSessionValue(context: Context, key: String, defaultValue: String): String? {
+    val sharedPrefs: SharedPreferences = context.getSharedPreferences("sharedPrefs", Context.MODE_PRIVATE)
+    return sharedPrefs.getString(key, defaultValue)
+    // val sesionIniciada : String = getSessionValue(context, "sesionIniciada", "no")
+}
 
 data class ModeloPagos(
     val idPagos: Int,
@@ -122,20 +149,20 @@ data class ModeloPagos(
 
 data class OpcionRenta(val value: String, val label: String)
 interface ApiService {
-    @POST("servicio.php?iniciarSesion")
+    @POST("berrones-acosta.php?iniciarSesion")
     @FormUrlEncoded
     suspend fun iniciarSesion(
         @Field("usuario") usuario: String,
         @Field("contrasena") contrasena: String
     ): Response<String>
 
-    @GET("servicio.php?Pagos")
+    @GET("berrones-acosta.php?Pagos")
     suspend fun Pagos(): List<ModeloPagos>
 
-    @GET("servicio.php?rentaCombo")
+    @GET("berrones-acosta.php?rentaCombo")
     suspend fun rentaCombo(): List<OpcionRenta>
 
-    @POST("servicio.php?agregarPagos")
+    @POST("berrones-acosta.php?agregarPagos")
     @FormUrlEncoded
     suspend fun agregarPagos(
         @Field("idRenta") idRenta: Int,
@@ -144,7 +171,7 @@ interface ApiService {
         @Field("metodoPago") metodoPago: String
     ): Response<String>
 
-    @POST("servicio.php?modificarPagos")
+    @POST("berrones-acosta.php?modificarPagos")
     @FormUrlEncoded
     suspend fun modificarPagos(
         @Field("idPagos") idPagos: Int,
@@ -153,7 +180,7 @@ interface ApiService {
         @Field("fechaPago") fechaPago: String,
         @Field("metodoPago") metodoPago: String
     ): Response<String>
-    @POST("servicio.php?eliminarPagos")
+    @POST("berrones-acosta.php?eliminarPagos")
     @FormUrlEncoded
     suspend fun eliminarPagos(
         @Field("idPagos") idPagos: Int
@@ -161,7 +188,7 @@ interface ApiService {
 }
 
 val retrofit = Retrofit.Builder()
-    .baseUrl("https://straight-prominent-quiz-exclude.trycloudflare.com/api/api/")
+    .baseUrl("https://dfhash.com/temporal/practicasDAM/")
     .addConverterFactory(ScalarsConverterFactory.create())
     .addConverterFactory(GsonConverterFactory.create())
     .build()
@@ -224,15 +251,16 @@ fun LoginContent(navController: NavHostController, modifier: Modifier, userRole:
                         val respuesta : Response<String> = api.iniciarSesion(usuario, contrasena)
                         if (respuesta.body() == "correcto") {
                         Toast.makeText(context, "Inicio de sesión con éxito.", Toast.LENGTH_SHORT).show()
-
-
                             if (usuario == "Admin") {
                                 userRole.value = "admin"
                                 navController.navigate("menuadmin")
+                                setSessionValue(context, "sesionIniciada", "yesAdmin")
                             } else {
                                 userRole.value = "cliente"
                                 navController.navigate("menu")
+                                setSessionValue(context, "sesionIniciada", "yes")
                             }
+
                         } else {
                         Toast.makeText(context, "Inicio de sesión fallido.", Toast.LENGTH_SHORT).show()
                         }
@@ -338,6 +366,22 @@ fun MenuContent(navController: NavHostController, modifier: Modifier) {
         ) {
 
             Text("Rentas")
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(
+            onClick = {
+                navController.navigate("lstRentas")
+            },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Black,
+                contentColor = Color.White
+            ),
+            modifier = Modifier
+                .size(width = 150.dp, height = 40.dp)
+                .align(Alignment.CenterHorizontally)
+        ) {
+
+            Text("RentasYami")
         }
     }
 }
@@ -922,271 +966,312 @@ fun FrmClientesContent(modifier: Modifier = Modifier, controller: NavHostControl
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LstRentasContent(navController: NavHostController, modifier: Modifier, userRole: androidx.compose.runtime.MutableState<String>) {
-    data class Rentas(val idRenta: Int, val idCliente: Int, val idTraje: Int, val descripcion: String, val fechaHoraInicio: String, val fechaHoraFin: String)
-    val rentas = remember {
-        mutableStateListOf(
-            Rentas(1, 3, 8, "Traje bonito azul", "12/3/04","5/6/78"),
-            Rentas(2, 20, 8, "Traje bonito azul", "12/3/04","5/6/78"),
-            Rentas(3, 23, 8, "Traje bonito azul", "12/3/04","5/6/78")
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
+    val pagos = remember { mutableStateListOf<ModeloPagos>() }
+
+    // Variables del formulario
+    var idPagos by remember { mutableStateOf(0) }
+    var idRenta by remember { mutableStateOf("") }
+    var monto by remember { mutableStateOf("") }
+    var fechaPago by remember { mutableStateOf("") }
+    var metodoPago by remember { mutableStateOf("") }
+
+    val rentaOpciones = remember {
+        mutableStateListOf<OpcionRenta>(
+            OpcionRenta("", "Selecciona una opción"),
+            //OpcionCategoria("1", "Galletas"),
+            //OpcionCategoria("2", "Refrescos")
         )
     }
-    // productos[index] = Producto(nombre, precio, existencias)
-    // productos[2] = Producto("Florentinas Fresa", 20.0, 5)
-    val scrollState = rememberScrollState()
+// ...
+    var rentaExpandido by remember { mutableStateOf(value = false) }
+    var renta by remember { mutableStateOf(value = rentaOpciones.first()) }
+
+    // Cargar lista al iniciar
+    LaunchedEffect(Unit) {
+        try {
+            val respuesta = api.Pagos()
+            pagos.clear()
+            pagos.addAll(respuesta)
+            val respuesta2 = api.rentaCombo()
+            rentaOpciones.clear()
+            rentaOpciones.addAll(respuesta2)
+        } catch (e: Exception) {
+            Log.e("API", "Error al cargar Pagos: ${e.message}")
+        }
+    }
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(24.dp)
-            .horizontalScroll(scrollState)
-            .padding(8.dp),
-        horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.Top
     ) {
+        // Botones de navegación
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween, // Separa los botones
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Botón para ir al Menú
-            Button(
-                onClick = { if (userRole.value == "admin") {
-                    navController.navigate("menuadmin")
-                } else {
-                    navController.navigate("menu")
-                }
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = Color.Blue
-                )
-            ) {
-                Text(
-                    "Menú",
-                    fontFamily = FontFamily.Serif,
-                    style = TextStyle(textDecoration = TextDecoration.Underline)
-                )
+            Button(onClick = {
+                if (userRole.value == "admin") navController.navigate("menuadmin")
+                else navController.navigate("menu")
+            }) {
+                Text("Menú")
             }
 
-            Button(
-                onClick = { navController.navigate("frmRentas") },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = Color.Blue
-                )
-            ) {
-                Text(
-                    "Formulario Rentas",
-                    fontFamily = FontFamily.Serif,
-                    style = TextStyle(textDecoration = TextDecoration.Underline)
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(
-            onClick = {
-                rentas.add(Rentas(4, 32, 9, "Traje bonito azul", "12/3/04", "5/6/78"))
-            },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Black,
-                contentColor = Color.White
-            ),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                "Agregar Producto Prueba",
-                style = TextStyle(textDecoration = TextDecoration.Underline),
-                textAlign = TextAlign.Start,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Row {
-            Text("idRenta", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
-            Text("idCliente", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
-            Text("idTraje", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
-            Text("Descripción", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
-            Text("FechaHoraInicio", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
-            Text("FechaHoraFin", modifier = Modifier.width(150.dp), fontWeight = FontWeight.Bold)
-        }
-        HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
-        rentas.forEachIndexed { index, Rentas ->
-            val bgColor = if (index % 2 == 0) Color(0xFFF5F5F5) else Color.White
-
-            Row (
-                modifier = Modifier
-                    .background(bgColor)
-            ) {
-                Text("${Rentas.idRenta}", modifier = Modifier
-                    .width(150.dp)
-                )
-                Text("${Rentas.idCliente}", modifier = Modifier
-                    .width(150.dp)
-                )
-                Text("${Rentas.idTraje}", modifier = Modifier
-                    .width(150.dp)
-                )
-                Text(Rentas.descripcion, modifier = Modifier
-                    .width(150.dp)
-                )
-                Text(Rentas.fechaHoraInicio, modifier = Modifier
-                    .width(150.dp)
-                )
-                Text(Rentas.fechaHoraFin, modifier = Modifier
-                    .width(150.dp)
-                )
-                Button(onClick = {
-                    rentas.removeAt(index)
-                    //Remueve en base al index del producto en la lista
-                }) {
-                    Text("Eliminar")
-                }
-            }
         }
 
-    }
-}
-@Composable
-fun FrmRentasContent(navController: NavHostController, modifier: Modifier, userRole: androidx.compose.runtime.MutableState<String>
-) {
-    val context = LocalContext.current
-    val scrollState = rememberScrollState()
+        Spacer(Modifier.height(24.dp))
 
-    var idRenta by remember { mutableStateOf("") }
-    var idCliente by remember { mutableStateOf("") }
-    var idTraje by remember { mutableStateOf("") }
-    var idEmpleado by remember { mutableStateOf("") }
-    var descripcion by remember { mutableStateOf("") }
-    var fechaHoraInicio by remember { mutableStateOf("") }
-    var fechaHoraFin by remember { mutableStateOf("") }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp)
-            .verticalScroll(scrollState),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.Start
-    ) {
-
-        Row {
-            Button(
-                onClick = { if (userRole.value == "admin") {
-                    navController.navigate("menuadmin")
-                } else {
-                    navController.navigate("menu")
-                }
-                }, // Se navega al menú
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = Color.Blue)
-            ) {
-                Text(text = "Regresar al Menú")
-            }
-            Button(
-                onClick = { navController.navigate("lstRentas") }, // Se navega a la tabla
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = Color.Blue)
-            ) {
-                Text(text = "Regresar a Rentas")
-            }
-        }
-
-        Spacer(Modifier.height(100.dp))
         Text(
-            text = "Formulario de Rentas",
-            modifier = Modifier
-                .padding(24.dp)
-                .align(alignment = Alignment.CenterHorizontally),
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = 24.sp
+            text = if (idPagos == 0) "Agregar Pago" else "Modificar Pago",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold
         )
 
-        Text(text = "Id Renta:", modifier = Modifier.align(alignment = Alignment.Start))
+        Spacer(Modifier.height(16.dp))
+
+        // Campos del formulario
+        Text("Id Pagos:")
         TextField(
-            value = idRenta,
-            onValueChange = { idRenta = it },
-            placeholder = { Text("Id Renta") },
+            value = if (idPagos == 0) "" else idPagos.toString(),
+            onValueChange = {
+                idPagos = it.toIntOrNull() ?: 0  // Convierte a Int, si falla usa 0
+            },
+            placeholder = { Text("Id Pagos") },
+            enabled = false,
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(Modifier.height(40.dp))
+        Spacer(Modifier.height(16.dp))
 
-        Text(text = "Id Cliente:", modifier = Modifier.align(alignment = Alignment.Start))
-        TextField(
-            value = idCliente,
-            onValueChange = { idCliente = it },
-            placeholder = { Text("Id Cliente") },
-            modifier = Modifier.fillMaxWidth()
-        )
+        Text(text = "Descripción renta:")
 
-        Spacer(Modifier.height(40.dp))
+        ExposedDropdownMenuBox(
+            expanded = rentaExpandido,
+            onExpandedChange = { rentaExpandido = !rentaExpandido }
+        ) {
+            TextField(
+                value = renta.label,
+                onValueChange = { /* No usado aquí ya que es de solo lectura */ },
+                readOnly = true,
+                label = { Text(text = "Selecciona una opción") },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = rentaExpandido)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+            )
 
-        Text(text = "Id Traje:", modifier = Modifier.align(alignment = Alignment.Start))
-        TextField(
-            value = idTraje,
-            onValueChange = { idTraje = it },
-            placeholder = { Text("Id Traje") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(40.dp))
-
-        if (userRole.value == "admin") {
-        Text(text = "Id Empleado:", modifier = Modifier.align(alignment = Alignment.Start))
-        TextField(
-            value = idEmpleado,
-            onValueChange = { idEmpleado = it },
-            placeholder = { Text("Id Empleado") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(40.dp))
+            DropdownMenu(
+                expanded = rentaExpandido,
+                onDismissRequest = { rentaExpandido = false }
+            ) {
+                rentaOpciones.forEach { opcion ->
+                    DropdownMenuItem(
+                        text = { Text(opcion.label) },
+                        onClick = {
+                            renta = opcion
+                            idRenta = opcion.value
+                            rentaExpandido = false
+                        }
+                    )
+                }
+            }
         }
 
-        Text(text = "descripcion:", modifier = Modifier.align(alignment = Alignment.Start))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text("Monto:")
         TextField(
-            value = descripcion,
-            onValueChange = { descripcion = it },
-            placeholder = { Text("Descripción del traje:") },
+            value = monto,
+            onValueChange = { monto = it },
+            placeholder = { Text("Monto") },
             modifier = Modifier.fillMaxWidth()
         )
+        Spacer(Modifier.height(16.dp))
 
-        Spacer(Modifier.height(40.dp))
-
-        Text(text = "Fecha de reserva:", modifier = Modifier.align(alignment = Alignment.Start))
+        Text("Fecha de Pago:")
         TextField(
-            value = fechaHoraInicio,
-            onValueChange = { fechaHoraInicio = it },
-            placeholder = { Text("Fecha de la reserva:") },
+            value = fechaPago,
+            onValueChange = { fechaPago = it },
+            placeholder = { Text("Día-Mes-Año") },
             modifier = Modifier.fillMaxWidth()
         )
+        Spacer(Modifier.height(16.dp))
 
-        Spacer(Modifier.height(40.dp))
-
-        Text(text = "Fecha de entrega:", modifier = Modifier.align(alignment = Alignment.Start))
+        Text("Método de pago:")
         TextField(
-            value = fechaHoraFin,
-            onValueChange = { fechaHoraFin = it },
-            placeholder = { Text("Fecha de entrega:") },
+            value = metodoPago,
+            onValueChange = { metodoPago = it },
+            placeholder = { Text("Método de pago") },
             modifier = Modifier.fillMaxWidth()
         )
+        Spacer(Modifier.height(16.dp))
 
-
+        // Botón agregar/modificar
         Button(
             onClick = {
-                Toast.makeText(context, "Id Renta: $idRenta", Toast.LENGTH_SHORT).show()
-                Toast.makeText(context, "Id Cliente: $idCliente", Toast.LENGTH_SHORT).show()
-                Toast.makeText(context, "Id Traje: $idTraje", Toast.LENGTH_SHORT).show()
-                if (userRole.value == "admin") {
-                Toast.makeText(context, "Id Empleado: $idEmpleado", Toast.LENGTH_SHORT).show()
+                scope.launch {
+                    try {
+                        if (idPagos == 0) {
+                            // Insertar
+                            val respuesta = api.agregarPagos(
+                                idRenta.toInt(),
+                                monto.toDouble(),
+                                fechaPago,
+                                metodoPago
+                            )
+                            val nuevoId = respuesta.body()?.toIntOrNull() ?: 0
+                            if (nuevoId > 0) {
+                                Toast.makeText(context, "Pago agregado.", Toast.LENGTH_SHORT).show()
+                                pagos.add(
+                                    ModeloPagos(
+                                        idPagos = nuevoId,
+                                        idRenta = idRenta.toInt(),
+                                        descripcionRentas = renta.label,
+                                        monto = monto.toDouble(),
+                                        fechaPago = fechaPago,
+                                        metodoPago = metodoPago
+                                    )
+                                )
+                            } else {
+                                Toast.makeText(context, "Error al agregar.", Toast.LENGTH_SHORT)
+                                    .show()
+                            }
+                        } else {
+
+                            // Editar/modificar
+                            val respuesta = api.modificarPagos(
+                                idPagos.toInt(),
+                                idRenta.toInt(),
+                                monto.toDouble(),
+                                fechaPago.toString(),
+                                metodoPago.toString()
+                            )
+                            if (respuesta.body() == "correcto") {
+                                Toast.makeText(context, "Pago modificado.", Toast.LENGTH_SHORT)
+                                    .show()
+
+                                // Refrescar lista o actualizar localmente:
+                                val index = pagos.indexOfFirst { it.idPagos == idPagos }
+                                if (index >= 0) {
+                                    pagos[index] = ModeloPagos(
+                                        idPagos = idPagos,
+                                        idRenta = idRenta.toInt(),
+                                        descripcionRentas = renta.label,
+                                        monto = monto.toDouble(),
+                                        fechaPago = fechaPago,
+                                        metodoPago = metodoPago
+                                    )
+                                }
+                            } else {
+                                Toast.makeText(context, " Error al modificar.", Toast.LENGTH_SHORT)
+                                    .show()
+                            }
+                        }
+                        // Limpiar formulario después
+                        idPagos = 0
+                        idRenta = ""
+                        monto = ""
+                        fechaPago = ""
+                        metodoPago = ""
+                    } catch (e: Exception) {
+                        Log.e("API", "Error al guardar pago: ${e.message}")
+                    }
                 }
-                Toast.makeText(context, "Descripción: $descripcion", Toast.LENGTH_SHORT).show()
-                Toast.makeText(context, "Hora de inicio: $fechaHoraInicio", Toast.LENGTH_SHORT).show()
-                Toast.makeText(context, "Hora de fin: $fechaHoraFin", Toast.LENGTH_SHORT).show()
             },
-            modifier = Modifier.align(alignment = Alignment.End)
+            modifier = Modifier.align(Alignment.End)
         ) {
-            Text(text = "Enviar")
+            Text(text = if (idPagos == 0) "Añadir" else "Modificar")
+        }
+
+        Spacer(Modifier.height(32.dp))
+
+        // Lista de pagos
+        // Scroll vertical para toda la tabla
+        val verticalScroll = rememberScrollState()
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(verticalScroll) // solo vertical aquí
+        ) {
+            // Fila de encabezados con scroll horizontal
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState())
+            ) {
+                Text("Id Pago", modifier = Modifier.width(80.dp), fontWeight = FontWeight.Bold)
+                Text("Descripción Renta", modifier = Modifier.width(80.dp), fontWeight = FontWeight.Bold)
+                Text("Monto", modifier = Modifier.width(100.dp), fontWeight = FontWeight.Bold)
+                Text("Fecha", modifier = Modifier.width(120.dp), fontWeight = FontWeight.Bold)
+                Text("Método", modifier = Modifier.width(120.dp), fontWeight = FontWeight.Bold)
+                Text("Acciones", modifier = Modifier.width(160.dp), fontWeight = FontWeight.Bold)
+            }
+            HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+
+            // Filas de pagos
+            pagos.forEachIndexed { index, pago ->
+                val bgColor = if (index % 2 == 0) Color(0xFFF5F5F5) else Color.White
+                Row(
+                    modifier = Modifier
+                        .background(bgColor)
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()) // solo horizontal para la fila
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("${pago.idPagos}", modifier = Modifier.width(80.dp))
+                    Text("${pago.descripcionRentas}", modifier = Modifier.width(80.dp))
+                    Text("$${pago.monto}", modifier = Modifier.width(100.dp))
+                    Text(pago.fechaPago, modifier = Modifier.width(120.dp))
+                    Text(pago.metodoPago, modifier = Modifier.width(120.dp))
+
+                    Row(modifier = Modifier.width(160.dp)) {
+                        Button(onClick = {
+                            // Editar: cargar los datos al formulario
+                            idPagos = pago.idPagos
+                            idRenta = pago.idRenta.toString()
+                            monto = pago.monto.toString()
+                            fechaPago = pago.fechaPago
+                            metodoPago = pago.metodoPago
+                        }) {
+                            Text("Editar")
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(onClick = {
+                            scope.launch {
+                                try {
+                                    val respuesta = api.eliminarPagos(pago.idPagos)
+                                    if (respuesta.body() == "correcto") {
+                                        Toast.makeText(
+                                            context,
+                                            "Pago eliminado.",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        pagos.removeAt(index)
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "Error al eliminar.",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("API", "Error al eliminar pago: ${e.message}")
+                                }
+                            }
+                        }) {
+                            Text("Eliminar")
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -1497,118 +1582,6 @@ fun LstPagosContent(navController: NavHostController, modifier: Modifier, userRo
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun FrmPagosContent(modifier: Modifier = Modifier, controller: NavHostController, userRole: androidx.compose.runtime.MutableState<String>
-) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-
-    var idPago by remember { mutableStateOf("") }
-    var idRenta by remember { mutableStateOf("") }
-    var monto by remember { mutableStateOf("") }
-    var fechaPago by remember { mutableStateOf("") }
-    var metodoPago by remember { mutableStateOf("") }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.Start
-    ) {
-
-        Row {
-            Button(
-                onClick = { if (userRole.value == "admin") {
-                    controller.navigate("menuadmin")
-                } else {
-                    controller.navigate("menu")
-                }
-                }, // Se navega al menú
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = Color.Blue)
-            ) {
-                Text(text = "Regresar al Menú")
-            }
-            Button(
-                onClick = { controller.navigate("lstPagos") }, // Se navega a la tabla
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = Color.Blue)
-            ) {
-                Text(text = "Regresar a Pagos")
-            }
-        }
-
-        Spacer(Modifier.height(100.dp))
-        Text(
-            text = "Formulario de Pagos",
-            modifier = Modifier
-                .padding(24.dp)
-                .align(alignment = Alignment.CenterHorizontally),
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = 24.sp
-        )
-
-        Spacer(Modifier.height(40.dp))
-
-        Text(text = "Id Renta:", modifier = Modifier.align(alignment = Alignment.Start))
-        TextField(
-            value = idRenta,
-            onValueChange = { idRenta = it },
-            placeholder = { Text("Id Renta") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(40.dp))
-
-        Text(text = "Monto:", modifier = Modifier.align(alignment = Alignment.Start))
-        TextField(
-            value = monto,
-            onValueChange = { monto = it },
-            placeholder = { Text("Monto final") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(40.dp))
-
-        Text(text = "Fecha de Pago:", modifier = Modifier.align(alignment = Alignment.Start))
-        TextField(
-            value = fechaPago,
-            onValueChange = { fechaPago = it },
-            placeholder = { Text("Fecha del pago") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(40.dp))
-
-        Text(text = "Metodo de pago:", modifier = Modifier.align(alignment = Alignment.Start))
-        TextField(
-            value = metodoPago,
-            onValueChange = { metodoPago = it },
-            placeholder = { Text("Metodo de pago:") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Button(
-            onClick = {
-                scope.launch {
-                    try {
-                        val respuesta = api.agregarPagos(idRenta.toInt(), monto.toDouble(), fechaPago, metodoPago)
-                        if ((respuesta.body()?.toIntOrNull() ?: 0) > 0)
-                            Toast.makeText(context, "Pago agregado con éxito.", Toast.LENGTH_SHORT).show()
-                        else
-                            Toast.makeText(context, "Error al agregar pago.", Toast.LENGTH_SHORT).show()
-                    }
-                    catch (e: Exception) {
-                        Log.e("API", "Error al agregar pago: ${e.message}")
-                    }
-                }
-            },
-            modifier = Modifier.align(alignment = Alignment.End)
-        ) {
-            Text(text = "Enviar")
         }
     }
 }
