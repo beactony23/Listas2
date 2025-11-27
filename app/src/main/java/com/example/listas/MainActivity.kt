@@ -96,7 +96,7 @@ fun AppContent(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val sesionIniciada : String? = getSessionValue(context, "sesionIniciada", "no")
 
-    var startDestination = "lstRentas"
+    var startDestination = "login"
 
     if(sesionIniciada == "yesAdmin"){
         startDestination = "menuadmin"
@@ -229,7 +229,7 @@ interface ApiService {
 suspend fun getRentas(): List<ModeloRenta>
 
     @FormUrlEncoded
-    @POST("hernandez-herrera?agregarRenta")
+    @POST("hernandez-herrera.php?agregarRenta")
     suspend fun agregarRenta(
         @Field("idCliente") idCliente: Int,
         @Field("idTraje") idTraje: Int,
@@ -240,7 +240,7 @@ suspend fun getRentas(): List<ModeloRenta>
     ): Response<String>
 
     @FormUrlEncoded
-    @POST("hernandez-herrera?modificarRenta")
+    @POST("hernandez-herrera.php?modificarRenta")
     suspend fun modificarRenta(
         @Field("idRenta") idRenta: Int,
         @Field("idCliente") idCliente: Int,
@@ -252,10 +252,11 @@ suspend fun getRentas(): List<ModeloRenta>
     ): Response<String>
 
     @FormUrlEncoded
-    @POST("hernandez-herrera?eliminarRenta")
+    @POST("hernandez-herrera.php?eliminarRenta")
     suspend fun eliminarRenta(
         @Field("idRenta") idRenta: Int
     ): Response<String>
+
 }
 
 val retrofit = Retrofit.Builder()
@@ -826,7 +827,7 @@ fun LstClientesContent(navController: NavHostController, modifier: Modifier, use
 }
 
 @Composable
-fun FrmClientesContent(navController: NavHostController, modifier: Modifier = Modifier) {
+fun FrmClientesContent(modifier: Modifier = Modifier, navController: NavHostController,  userRole: MutableState<String>) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -862,13 +863,6 @@ fun FrmClientesContent(navController: NavHostController, modifier: Modifier = Mo
                 Text("Agregar")
             }
 
-            Button(onClick = {
-                val id = idClienteStr.toIntOrNull()
-                if (id != null) scope.launch { buscarClientePorID(context, id, fillFields) }
-                else Toast.makeText(context, "ID inválido para buscar", Toast.LENGTH_SHORT).show()
-            }) {
-                Text("Buscar")
-            }
         }
 
         Spacer(Modifier.height(8.dp))
@@ -892,122 +886,7 @@ fun FrmClientesContent(navController: NavHostController, modifier: Modifier = Mo
             }
         }
 }
-@Composable
-fun FrmClientesContent(modifier: Modifier = Modifier, controller: NavHostController, userRole: androidx.compose.runtime.MutableState<String>
-) {
-    val context = LocalContext.current
 
-    var idCliente by remember { mutableStateOf("") }
-    var nombre by remember { mutableStateOf("") }
-    var telefono by remember { mutableStateOf("") }
-    var correo by remember { mutableStateOf("") }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.Start
-    ) {
-
-        // Botones de navegación
-        Row {
-            Button(
-                onClick = { if (userRole.value == "admin") {
-                    controller.navigate("menuadmin")
-                } else {
-                    controller.navigate("menu")
-                }
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = Color.Blue
-                )
-            ) {
-                Text(text = "Regresar al Menú")
-            }
-            Button(
-                onClick = { controller.navigate("lstClientes") },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = Color.Blue
-                )
-            ) {
-                Text(text = "Regresar a Clientes")
-            }
-        }
-
-        Spacer(Modifier.height(100.dp))
-
-        // Título del formulario
-        Text(
-            text = "Formulario de Clientes",
-            modifier = Modifier
-                .padding(24.dp)
-                .align(alignment = Alignment.CenterHorizontally),
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = 24.sp
-        )
-
-        // ID Cliente
-        Text(text = "ID Cliente:", modifier = Modifier.align(alignment = Alignment.Start))
-        TextField(
-            value = idCliente,
-            onValueChange = { idCliente = it },
-            placeholder = { Text("ID del cliente") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(40.dp))
-
-        // Nombre
-        Text(text = "Nombre:", modifier = Modifier.align(alignment = Alignment.Start))
-        TextField(
-            value = nombre,
-            onValueChange = { nombre = it },
-            placeholder = { Text("Nombre completo del cliente") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(40.dp))
-
-        // Teléfono
-        Text(text = "Teléfono:", modifier = Modifier.align(alignment = Alignment.Start))
-        TextField(
-            value = telefono,
-            onValueChange = { telefono = it },
-            placeholder = { Text("Ejemplo: 5551234567") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(40.dp))
-
-        // Correo electrónico
-        Text(text = "Correo Electrónico:", modifier = Modifier.align(alignment = Alignment.Start))
-        TextField(
-            value = correo,
-            onValueChange = { correo = it },
-            placeholder = { Text("correo@ejemplo.com") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(40.dp))
-
-
-        // Botón de envío
-        Button(
-            onClick = {
-                Toast.makeText(context, "ID Cliente: $idCliente", Toast.LENGTH_SHORT).show()
-                Toast.makeText(context, "Nombre: $nombre", Toast.LENGTH_SHORT).show()
-                Toast.makeText(context, "Teléfono: $telefono", Toast.LENGTH_SHORT).show()
-                Toast.makeText(context, "Correo: $correo", Toast.LENGTH_SHORT).show()
-            },
-            modifier = Modifier.align(alignment = Alignment.End)
-        ) {
-            Text(text = "Guardar Cliente")
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1840,21 +1719,6 @@ private suspend fun agregarNuevoCliente(context: Context, nombre: String, telefo
         }
     } catch (e: Exception) {
         Log.e("API_CLIENTES", "Error al agregar: ${e.message}")
-        Toast.makeText(context, "Error de conexión/servidor: ${e.message}", Toast.LENGTH_LONG).show()
-    }
-}
-
-private suspend fun buscarClientePorID(context: Context, idCliente: Int, onFound: (ModeloClientes) -> Unit) {
-    try {
-        val cliente = api.buscarCliente(idCliente)
-        if (cliente != null) {
-            onFound(cliente)
-            Toast.makeText(context, "Cliente encontrado", Toast.LENGTH_SHORT).show()
-        } else {
-            Toast.makeText(context, "Cliente no encontrado (ID: $idCliente)", Toast.LENGTH_SHORT).show()
-        }
-    } catch (e: Exception) {
-        Log.e("API_CLIENTES", "Error al buscar: ${e.message}")
         Toast.makeText(context, "Error de conexión/servidor: ${e.message}", Toast.LENGTH_LONG).show()
     }
 }
